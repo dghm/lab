@@ -1,0 +1,23 @@
+#!/bin/bash
+# 667 公寓系統 — Bluehost 部署設定範本
+#
+# 使用方式：
+#   1. 複製這個檔案為 deploy.local.sh（同目錄下）
+#      cp deploy.local.sh.example deploy.local.sh
+#   2. 填入下面的 FTP 帳密與遠端路徑
+#   3. chmod 600 deploy.local.sh（避免其他使用者讀到密碼）
+#   4. 執行 ./deploy.sh 進行上傳
+#
+# deploy.local.sh 含密碼，請勿上傳、commit 或分享給任何人（包括 Claude）。
+
+# Bluehost FTP 主機（cPanel → FTP Accounts 可查到，通常是 ftp.dghm.tw 或 box 開頭的主機名）
+FTP_HOST="ftp.dghm.tw"
+
+# FTP 帳號 / 密碼
+FTP_USER="你的FTP帳號"
+FTP_PASS="你的FTP密碼"
+
+# 遠端目錄（線上系統所在路徑）
+# 注意：HANDOFF.md 中提到 error_log 顯示的路徑與 CLAUDE.md 記載不同，
+# 部署前請先用 FTP 軟體確認正確路徑，再填入這裡。
+REMOTE_DIR="/public_html/apt"

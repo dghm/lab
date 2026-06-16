@@ -1,0 +1,14 @@
+# === 機密：絕不進版控 ===
+# config.php 含 DB 帳密；deploy.local.sh 含 FTP 帳密（保留 .example 範本）
+config.php
+deploy.local.sh
+
+# === 房客隱私：上傳的帳單附件 ===
+uploads/
+
+# === 執行期產物 / 雜物 ===
+# error_log 含舊 DB 帳號等敏感資訊
+error_log
+*.zip
+.DS_Store
+.claude/
