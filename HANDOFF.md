@@ -1,71 +1,75 @@
 # HANDOFF — 667 公寓費用分攤系統
 
-> 交接時間：2026-06-14
-> 用途：在另一台電腦用 Claude Cowork 同步後，接續未完成的檢查與待辦。
-
-## 已處理項目
-
-- [x] **帳單照片上傳存檔**：已確認 admin.php 新增/編輯帳單表單已串接上傳（`save_bill_attachment` / `delete_bill_attachment`），房客端 index.php 也已顯示附件圖示，schema.sql 已含 `attachment_path`。CLAUDE.md 待辦已打勾。
-- [x] **房客帳號 a/b 與 David/Zeb 對應**：已確認線上帳號為 David（A 室）/ Zeb（B 室），CLAUDE.md 為正確現況；schema.sql 已加註說明該檔僅為初始種子資料（a/b），重新匯入需再手動改名改密。
-- [ ] **admin 重設房客密碼功能**：仍未實作，維持為真待辦（見 CLAUDE.md）。
-
-## 尚待確認的風險項目
-
-- **error_log 有 2026-06-10 的嚴重錯誤**：
-  ```
-  PHP Fatal error: Uncaught PDOException: SQLSTATE[HY000] [1045]
-  Access denied for user 'xxxxxxx_apt'@'localhost' (using password: YES)
-  in .../db.php:22
-  ```
-  - 錯誤路徑顯示為 `public_html/website_6b29b600/apt/`，但 CLAUDE.md 寫的線上路徑是 `public_html/apt/`。
-  - **待確認**：
-    1. ~~這個路徑差異是測試環境造成的，還是線上路徑真的改變了？~~ → 已釐清（2026-06-14）：線上實際路徑就是 `/website_6b29b600/apt`，CLAUDE.md 記載過時，見下方「部署設定」。
-    2. 線上 `config.php` 的 DB 帳密是否與 Bluehost 上的 DB 使用者一致（密碼曾外洩換過，可能還沒同步到所有地方）。→ **已釐清（2026-06-14）**：線上 `https://dghm.tw/apt/` 與 `login.php` 皆回 200，未噴 500，代表線上 DB 連線正常、帳密一致。
-    3. 此錯誤是否已排除（log 是否還在持續新增）。→ **已釐清（2026-06-14）**：error_log 全部 12 筆 Fatal error 集中在 10-Jun-2026 19:35–19:59 單一時段，且失敗的使用者是 `xxxxxxx_apt`（舊設定的 `_apt` 帳號），**並非**目前 config.php 的 `zjqafhmy_667user`。距今 4 天無新錯誤，視為已排除（舊版設定殘留）。
+> 更新：2026-06-15
+> 對象：透過 GitHub repo `dghm/apt` 接手的開發者 / AI Agent。
+> **先讀 `CLAUDE.md`**（專案全貌、業務規則、檔案結構、開發守則），本檔只補充「如何開發部署、目前現況、待辦」。
 
 ---
 
-## 部署設定（2026-06-14 新增）
+## 一分鐘上手
 
-### 已完成
-- **lftp 4.9.3** 已安裝（`brew install lftp`）。
-- 由範本建立 **`deploy.local.sh`**（權限 600，含 FTP 帳密，已 gitignore，勿提交/分享）。
-- **確認線上正確路徑**：`/website_6b29b600/apt`（底線；FTP 登入後已在網站根目錄，**不需** `public_html` 前綴）。與 error_log 顯示一致。
-- 可用 FTP 帳號：`yayan@zjq.afh.mybluehost.me`（落在網站根目錄）。
-  ❌ 別用 `dghm-apt@...` 子帳號 —— 它被 chroot 鎖在獨立空目錄，看不到網站檔。
-- **修補 `deploy.sh` 嚴重安全漏洞** ⚠️：worktree 實體位於 `apt/.claude/worktrees/<name>/`，內含整包大 repo（`clients/`、`Proposal/` 等全公司機密）。原排除清單缺 `.claude/`，會把機密一起上傳。已加入 `--exclude-glob .claude/`（及 `.git`、`.gitignore`），`--dry-run` 驗證乾淨。
-- **清理殘留 worktree**（各約 521MB）：已移除 `thirsty-murdock-dd8d56`（只含 .DS_Store）、prune 掉失效的 `upbeat-williams-a659a5`。`quirky-mirzakhani-cb5bc7` 已於 2026-06-14 移除（確認只有 .DS_Store 變更、無未提交程式碼）。
+- 這是台北內湖「667 公寓」的水電瓦斯網路費用分攤 + 繳費追蹤系統。
+- 原生 PHP 8 + MySQL，無框架、無 composer 依賴。
+- 已上線：https://dghm.tw/apt/
+- 此 repo＝**部署母版**。線上檔案在 Bluehost，**改完要用 `deploy.sh` 上傳**（部署不靠 git，靠 lftp）。
 
-### 部署指令
-```bash
-cd /Users/arieshsieh/Desktop/projects/dghm/workspace/website_6b29b600/apt
-./deploy.sh --dry-run   # 預覽
-./deploy.sh             # 上傳（只傳變動，不刪遠端）
-```
-`config.php` / `schema.sql` / `uploads/` 會被刻意跳過，需手動進 cPanel / phpMyAdmin。目前本機與線上已同步，`--dry-run` 無待傳檔屬正常。
+## 開發與部署流程
 
-### 部署相關待辦
-- [ ] **commit `deploy.sh` 的安全修補**：目前是未追蹤本機檔（`??`），尚未進版控，易遺失。
-- [ ] **改掉外洩的 FTP 密碼**：測試初期 lftp 曾把 `dghm-apt` 子帳號密碼印在輸出（已在對話記錄中）。建議到 cPanel 改密碼或刪掉該子帳號。
-- [ ] **清線上殘留開發檔**：線上 `/website_6b29b600/apt` 仍有 `CLAUDE.md`、`DEPLOY-SOP.md`、`error_log`、`files/`、`files.zip`、`preview.html`（早期上傳，會洩漏結構，error_log 含 DB 帳號）。deploy.sh 不刪遠端檔，需手動清。
-- [ ] **`inspiring-galileo-08fcf7`（fp-decoration）worktree**：可能是另一工作階段在用，確認沒用後再移除。
-- [x] **補本機 root `.htaccess`**（2026-06-14 完成）：已依 `files/tenant-portal/template/.htaccess` 範本建立本機 apt 根目錄 `.htaccess`（強制 HTTPS + 擋 config/db/functions/*.sql + 安全標頭）。deploy.sh 未排除 `.htaccess`，下次部署會一併上傳，與線上保持同步。
+1. 本機改檔。
+2. `./deploy.sh --dry-run` 預覽會上傳哪些檔。
+3. `./deploy.sh` 上傳（mirror，只傳變動、**不刪**遠端檔）。
+4. 開 https://dghm.tw/apt/login.php 驗證。
 
-### worktree 背景
-- 本階段以「worktree 隔離模式」啟動，由 Claude Code 自動建立，**結束不會自動刪**（需 `git worktree remove`）。
-- 避免再產生：開新階段時不要勾「在 worktree 中執行 / isolated」。
-- 部署檔（`deploy.sh`、`deploy.local.sh`、本檔）都在 **apt 主資料夾**，不在 worktree 內，刪 worktree 不會弄丟。
+- 線上實際路徑：`/website_6b29b600/apt`（FTP 登入後即在網站根目錄，**不需** `public_html` 前綴）。
+- `deploy.sh` 會刻意跳過 `config.php` / `schema.sql` / `uploads/` 與開發文件；要改 DB 設定或結構請手動進 cPanel / phpMyAdmin。
 
-## 其他觀察（非緊急）
+## 環境機密（**不在 repo 內，需向 Aries 取得**）
 
-- 資料夾內有多個輔助檔案未列在 CLAUDE.md 檔案結構說明中，可考慮補充說明或整理：
-  - `DEPLOY-SOP.md`（部署 SOP）
-  - `preview.html`（靜態預覽）
-  - `bill-file.php`（帳單附件輸出）
-  - `files/667-公寓系統開發復盤.md`、`files/tenant-portal-skill.zip`、`files.zip`
-  - `assets/icon-doc.svg`、`assets/icon-details.svg`（CLAUDE.md 的 assets 清單未列出）
+這些被 `.gitignore` 排除，絕不可進版控：
 
-- `compute_split()` 仍為硬寫 3 人分攤，與 CLAUDE.md 規則一致，本次未改動任何程式碼。
+| 檔案 | 內容 | 如何取得 |
+|------|------|----------|
+| `config.php` | DB 帳密、SPLIT_START、收款資訊 | 向 Aries 取，或從線上 cPanel 複製 |
+| `deploy.local.sh` | FTP 帳密與遠端路徑 | 依 `deploy.local.sh.example` 範本建立（權限設 600）；FTP 帳號向 Aries 取 |
+
+- 部署需先 `brew install lftp`（本系統用 lftp 4.9.x 驗證過）。
+- ⚠️ 部署用的 FTP 應使用**落在網站根目錄**的主帳號；早期測試發現某些子帳號被 chroot 鎖在獨立空目錄、看不到網站檔。
+
+## 目前現況（2026-06-15）
+
+- 系統已上線正常運作；近一次驗證 `https://dghm.tw/apt/` 與 `login.php` 皆回 200。
+- 本機與線上內容已同步。
+- error_log 曾有 2026-06-10 一批 DB 連線 Fatal error，已確認為**舊設定殘留**（失敗帳號 `xxxxxxx_apt` 非現行 `zjqafhmy_667user`），無新錯誤、視為已排除。
+- 帳單照片上傳（admin / 房客端 / schema / `bill-file.php`）已完成。
+- 本專案於 2026-06-15 從 workspace 大 repo 獨立出來，成為私有 repo **`dghm/apt`**。
+
+## 待辦
+
+功能面（見 CLAUDE.md「目前狀態與待辦」）：
+- [ ] admin 重設房客密碼功能（尚未實作）
+- [ ] 每次結算後 phpMyAdmin Export 備份
+- [ ] compute_split() 改為動態抓 tenant 人數（目前硬寫 3 人）
+- [ ] 個人費用歷史趨勢走線圖（房客端）
+- [ ] 年度統計（每年 5/1–隔年 4/30）
+
+維運面：
+- [ ] **清線上殘留開發檔**：線上 `/website_6b29b600/apt` 仍有 `CLAUDE.md`、`DEPLOY-SOP.md`、`error_log`、`files/`、`files.zip`、`preview.html`（早期上傳、會洩漏結構，`error_log` 含舊 DB 帳號）。`deploy.sh` 不刪遠端檔，需手動用 FTP / cPanel 清。
+- [ ] **改外洩的 FTP 密碼**：早期測試曾在輸出印出某 FTP 子帳號密碼，建議到 cPanel 改密或刪該子帳號。
+- [ ] **（資安）確認 workspace 大 repo 的 GitHub 外洩疑慮**：apt 原屬的 `dghm/workspace` repo 曾掛一個拼法可疑的遠端 `github.com/brabdrize/workspace`，含全公司機密。本機遠端已移除，但 GitHub 上既有內容需另行確認與處理（與本 apt repo 無關）。
+
+## 重要注意事項
+
+- **業務規則勿擅改**：分攤起始日、跨期按天數拆分、尾差由 Aries 吸收、固定費 ÷3 等，邏輯集中在 `functions.php` 的 `compute_split()`；改算法時 `assets/app.js` 的即時試算公式要同步改。詳見 CLAUDE.md。
+- **安全第一**：PDO prepared statements、房客查詢一律 `WHERE user_id=自己`、寫入帶 CSRF token、輸出經 `h()`。
+- **機密絕不進 repo**：`config.php` 第一行必為 `<?php`（曾因缺漏導致密碼外洩）。新增機密類檔案先確認在 `.gitignore` 內。
+- 文案稱呼用「Aries」不用「房東」。
 
 ---
-本檔案為一次性交接筆記，處理完畢後可刪除或併入 CLAUDE.md。
+
+## 參考檔案
+
+- `CLAUDE.md` — 專案全貌與開發守則（**必讀**）
+- `DEPLOY-SOP.md` — 部署 SOP 細節
+- `deploy.sh` / `deploy.local.sh.example` — 部署腳本與設定範本
+- `files/667-公寓系統開發復盤.md` — 完整開發復盤
+- `files/tenant-portal/` — 可複用骨架 skill（同源碼）
