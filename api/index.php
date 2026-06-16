@@ -24,6 +24,9 @@ try {
         case 'targets_get':  json_out(['targets' => get_targets()]); break;
         case 'targets_save': json_out(save_targets($body['targets'] ?? [])); break;
         case 'summary':      json_out(build_summary()); break;
+        case 'txn_list':   json_out(['txns' => list_txns((int)($_GET['holding_id'] ?? 0))]); break;
+        case 'txn_save':   json_out(save_txn($body)); break;
+        case 'txn_delete': json_out(delete_txn((int)($body['id'] ?? 0))); break;
         default:             json_out(['error' => 'unknown action'], 400);
     }
 } catch (Throwable $e) {
@@ -258,8 +261,9 @@ function make_row(array $h, float $nativeValue, ?float $invested, float $rate,
         'pl'         => $pl !== null ? round($pl, 2) : null,
         'returnPct'  => $ret,
         'targetReturn' => $target,
-        'stopStatus' => $stop,
-        'isDca'      => (int) $h['is_dca'] === 1,
+        'stopStatus'  => $stop,
+        'isDca'       => (int) $h['is_dca'] === 1,
+        'nativeValue' => round($nativeValue, 4),
     ];
 }
 
@@ -342,4 +346,46 @@ function index_pct(array $agg): array
 function num_or_null($v): ?float
 {
     return ($v === '' || $v === null) ? null : (float) $v;
+}
+
+// ---------- transactions ----------
+
+function list_txns(int $holdingId): array
+{
+    $stmt = db()->prepare('SELECT * FROM transactions WHERE holding_id = ? ORDER BY txn_date DESC, id DESC');
+    $stmt->execute([$holdingId]);
+    return $stmt->fetchAll();
+}
+
+function save_txn(array $d): array
+{
+    $f = [
+        'holding_id' => (int)($d['holding_id'] ?? 0),
+        'txn_date'   => $d['txn_date'] ?? date('Y-m-d'),
+        'txn_type'   => $d['txn_type'] ?? 'buy',
+        'quantity'   => num_or_null($d['quantity'] ?? ''),
+        'unit_price' => num_or_null($d['unit_price'] ?? ''),
+        'amount'     => (float)($d['amount'] ?? 0),
+        'fee'        => num_or_null($d['fee'] ?? ''),
+        'currency'   => strtoupper(trim($d['currency'] ?? 'TWD')),
+        'note'       => trim($d['note'] ?? '') ?: null,
+    ];
+    if ($f['holding_id'] <= 0) json_out(['error' => 'holding_id 必填'], 422);
+    if (!empty($d['id'])) {
+        $f['id'] = (int)$d['id'];
+        db()->prepare('UPDATE transactions SET holding_id=:holding_id, txn_date=:txn_date, txn_type=:txn_type,
+            quantity=:quantity, unit_price=:unit_price, amount=:amount, fee=:fee, currency=:currency, note=:note
+            WHERE id=:id')->execute($f);
+        return ['ok' => true, 'id' => $f['id']];
+    }
+    $keys = implode(',', array_keys($f));
+    $vals = ':' . implode(',:', array_keys($f));
+    db()->prepare("INSERT INTO transactions ($keys) VALUES ($vals)")->execute($f);
+    return ['ok' => true, 'id' => (int)db()->lastInsertId()];
+}
+
+function delete_txn(int $id): array
+{
+    db()->prepare('DELETE FROM transactions WHERE id = ?')->execute([$id]);
+    return ['ok' => true];
 }

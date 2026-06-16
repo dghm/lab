@@ -88,6 +88,16 @@ textarea { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--
 code { background: #f0f2f5; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 dialog#txnDialog, dialog#importDialog { width: min(560px, 94vw); }
 
+h4 { margin: 0 0 8px; }
+.txn-list { max-height: 240px; overflow-y: auto; }
+dialog#txnDialog { width: min(640px, 96vw); }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 0; border-bottom: 2px solid var(--line); }
+.tab { background: none; color: var(--muted); border: none; border-radius: 8px 8px 0 0;
+       padding: 8px 18px; font-size: 14px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+.tab.active { color: var(--brand); border-bottom: 2px solid var(--brand); font-weight: 600; }
+.tab-summary { background: var(--card); border: 1px solid var(--line); border-top: none;
+               padding: 8px 16px; font-size: 13px; color: var(--muted); margin-bottom: 0; border-radius: 0 0 0 0; }
+
 @media (max-width: 760px) {
     .charts { grid-template-columns: 1fr; }
     .cards { flex-direction: column; }

@@ -50,6 +50,13 @@
         <h2>持有部位</h2>
         <button id="addBtn">＋ 新增資產</button>
     </div>
+    <div class="tab-bar" id="holdingTabs">
+        <button class="tab active" data-tab="all">全部</button>
+        <button class="tab" data-tab="tw_stock">台股</button>
+        <button class="tab" data-tab="fund">基金</button>
+        <button class="tab" data-tab="cash">現金</button>
+    </div>
+    <div id="tabSummary" class="tab-summary"></div>
     <table id="holdingsTable" class="data-table">
         <thead><tr>
             <th>名稱</th><th>類別</th><th>屬性</th><th class="num">持有</th><th class="num">現價</th>
@@ -126,6 +133,45 @@
             <button type="submit">儲存</button>
         </menu>
     </form>
+</dialog>
+
+<!-- 交易記錄 -->
+<dialog id="txnDialog">
+    <h3 id="txnDlgTitle">交易記錄</h3>
+    <div id="txnList" class="txn-list"></div>
+    <div class="txn-form">
+        <h4 style="font-size:13px;color:var(--muted);margin:0 0 4px">新增交易</h4>
+        <form id="txnForm">
+            <input type="hidden" id="txnHoldingId">
+            <input type="hidden" id="txnCurrency">
+            <div class="row">
+                <label>日期<input type="date" id="txnDate"></label>
+                <label>類型
+                    <select id="txnType">
+                        <option value="buy">買入 / 申購</option>
+                        <option value="sell">賣出 / 贖回</option>
+                        <option value="dividend">配息 / 分派</option>
+                        <option value="fx_in">換匯流入</option>
+                        <option value="fx_out">換匯流出 / 費用</option>
+                    </select>
+                </label>
+            </div>
+            <div class="row">
+                <label>金額（原幣）<input type="number" step="any" id="txnAmount" placeholder="必填"></label>
+                <label>手續費（原幣）<input type="number" step="any" id="txnFee" placeholder="選填"></label>
+            </div>
+            <div class="row">
+                <label>數量 / 單位數<input type="number" step="any" id="txnQty" placeholder="選填"></label>
+                <label>成交單價<input type="number" step="any" id="txnUnitPrice" placeholder="選填"></label>
+            </div>
+            <label>備註<input type="text" id="txnNote" placeholder="選填"></label>
+            <p class="muted hint" id="txnHint"></p>
+            <menu>
+                <button type="button" id="cancelTxn" class="ghost">關閉</button>
+                <button type="submit">新增交易</button>
+            </menu>
+        </form>
+    </div>
 </dialog>
 
 <!-- 目標配置 -->

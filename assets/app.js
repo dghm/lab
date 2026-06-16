@@ -8,6 +8,8 @@ const DIM_LABEL = { category: '類別', currency: '幣別', region: '地區', as
 const fmt = n => (n ?? 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
 const charts = {};
 let HOLDINGS = [];
+let ROWS = [];
+let currentTab = 'all';
 
 async function api(action, body) {
     const res = await fetch(`${API}?action=${action}`, {
@@ -58,7 +60,8 @@ function renderSummary(s) {
     pie('chartCurrency', s.allocation.currency, 'currency');
     pie('chartRegion', s.allocation.region, 'region');
 
-    renderHoldings(s.rows);
+    ROWS = s.rows;
+    renderHoldings(ROWS);
     renderRebalance(s.rebalance);
 }
 
@@ -81,8 +84,23 @@ function stopBadge(r) {
 }
 
 function renderHoldings(rows) {
+    // Tab 篩選
+    const filtered = currentTab === 'all' ? rows : rows.filter(r => r.category === currentTab);
+
+    // Tab 小計
+    const tabVal  = filtered.reduce((s, r) => s + (r.value || 0), 0);
+    const tabCost = filtered.reduce((s, r) => s + (r.cost || 0), 0);
+    const tabPl   = filtered.reduce((s, r) => s + (r.pl || 0), 0);
+    const tabRet  = tabCost > 0 ? (tabPl / tabCost * 100).toFixed(2) : null;
+    const summEl  = document.getElementById('tabSummary');
+    summEl.innerHTML = `市值 NT$${fmt(tabVal)}｜投入 NT$${fmt(tabCost)}｜損益 <span class="${plClass(tabPl)}">${sign(tabPl)}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span>`;
+
     const tb = document.querySelector('#holdingsTable tbody');
-    tb.innerHTML = rows.map(r => `
+    tb.innerHTML = filtered.map(r => {
+        const valueCell = r.category === 'fund' && r.currency === 'USD'
+            ? `${fmt(r.value)}<br><span class="muted" style="font-size:11px">$${r.nativeValue?.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USD</span>`
+            : fmt(r.value);
+        return `
         <tr>
             <td>${r.name}${r.isDca ? ' <span class="muted">定期</span>' : ''}</td>
             <td>${CAT_LABEL[r.category] || r.category}</td>
@@ -90,15 +108,18 @@ function renderHoldings(rows) {
             <td class="num">${r.units != null ? r.units.toLocaleString() : '—'}</td>
             <td class="num">${r.unitPrice != null ? r.unitPrice.toLocaleString() : '—'}</td>
             <td class="num">${r.cost != null ? fmt(r.cost) : '—'}</td>
-            <td class="num strong">${fmt(r.value)}</td>
+            <td class="num strong">${valueCell}</td>
             <td class="num ${plClass(r.pl)}">${r.pl != null ? sign(r.pl) : '—'}</td>
             <td class="num ${plClass(r.pl)}">${r.returnPct != null ? r.returnPct + '%' : '—'}</td>
             <td>${stopBadge(r)}</td>
             <td class="ops">
+                <button class="link txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}">記錄</button>
                 <button class="link edit" data-id="${r.id}">編輯</button>
                 <button class="link del" data-id="${r.id}">刪除</button>
             </td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
+    tb.querySelectorAll('.txn').forEach(b => b.onclick = () => openTxnDialog(+b.dataset.id, b.dataset.name, b.dataset.currency));
     tb.querySelectorAll('.edit').forEach(b => b.onclick = () => openEdit(+b.dataset.id));
     tb.querySelectorAll('.del').forEach(b => b.onclick = () => removeHolding(+b.dataset.id));
 }
@@ -217,6 +238,93 @@ tForm.onsubmit = async () => {
     await api('targets_save', { targets });
     tDlg.close(); refresh();
 };
+
+// ---------- Tab 切換 ----------
+document.getElementById('holdingTabs').addEventListener('click', e => {
+    const btn = e.target.closest('.tab');
+    if (!btn) return;
+    document.querySelectorAll('#holdingTabs .tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    renderHoldings(ROWS);
+});
+
+// ---------- 交易記錄 ----------
+const txnDlg = document.getElementById('txnDialog');
+const txnForm = document.getElementById('txnForm');
+const TXN_LABEL = { buy: '買入/申購', sell: '賣出/贖回', dividend: '配息/分派', fx_in: '換匯流入', fx_out: '換匯流出/費用' };
+
+async function openTxnDialog(holdingId, name, currency) {
+    document.getElementById('txnDlgTitle').textContent = `交易記錄：${name}`;
+    document.getElementById('txnHoldingId').value = holdingId;
+    document.getElementById('txnCurrency').value = currency;
+    document.getElementById('txnDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('txnAmount').value = '';
+    document.getElementById('txnFee').value = '';
+    document.getElementById('txnQty').value = '';
+    document.getElementById('txnUnitPrice').value = '';
+    document.getElementById('txnNote').value = '';
+    document.getElementById('txnHint').textContent = '';
+    await loadTxnList(holdingId);
+    txnDlg.showModal();
+}
+
+async function loadTxnList(holdingId) {
+    const res = await api(`txn_list&holding_id=${holdingId}`);
+    const list = document.getElementById('txnList');
+    if (!res.txns || res.txns.length === 0) {
+        list.innerHTML = '<p class="muted" style="margin:0 0 8px">尚無交易記錄。</p>';
+        return;
+    }
+    list.innerHTML = `<table class="data-table mini" style="margin:0 0 12px">
+        <thead><tr><th>日期</th><th>類型</th><th class="num">金額</th><th class="num">手續費</th><th>數量</th><th>備註</th><th></th></tr></thead>
+        <tbody>${res.txns.map(t => `<tr>
+            <td>${t.txn_date}</td>
+            <td>${TXN_LABEL[t.txn_type] || t.txn_type}</td>
+            <td class="num">${(+t.amount).toLocaleString()} ${t.currency}</td>
+            <td class="num">${t.fee != null ? (+t.fee).toLocaleString() : '—'}</td>
+            <td>${t.quantity != null ? (+t.quantity).toLocaleString() : '—'}</td>
+            <td>${t.note || ''}</td>
+            <td><button class="link del-txn" data-id="${t.id}" data-hid="${t.holding_id}">刪</button></td>
+        </tr>`).join('')}</tbody>
+    </table>`;
+    list.querySelectorAll('.del-txn').forEach(b => b.onclick = async () => {
+        if (!confirm('刪除這筆交易記錄？')) return;
+        await api('txn_delete', { id: +b.dataset.id });
+        await loadTxnList(+b.dataset.hid);
+    });
+}
+
+txnForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const holdingId = +document.getElementById('txnHoldingId').value;
+    const txnType = document.getElementById('txnType').value;
+    await api('txn_save', {
+        holding_id: holdingId,
+        txn_date:   document.getElementById('txnDate').value,
+        txn_type:   txnType,
+        amount:     document.getElementById('txnAmount').value,
+        fee:        document.getElementById('txnFee').value,
+        quantity:   document.getElementById('txnQty').value,
+        unit_price: document.getElementById('txnUnitPrice').value,
+        currency:   document.getElementById('txnCurrency').value,
+        note:       document.getElementById('txnNote').value,
+    });
+    document.getElementById('txnAmount').value = '';
+    document.getElementById('txnFee').value = '';
+    document.getElementById('txnQty').value = '';
+    document.getElementById('txnUnitPrice').value = '';
+    document.getElementById('txnNote').value = '';
+    await loadTxnList(holdingId);
+    if (txnType === 'buy' || txnType === 'sell') {
+        document.getElementById('txnHint').textContent =
+            '⚠ 記得回到持倉編輯，手動更新「持有單位數」和「累計投入基準」。';
+    } else {
+        document.getElementById('txnHint').textContent = '';
+    }
+};
+
+document.getElementById('cancelTxn').onclick = () => txnDlg.close();
 
 // ---------- 綁定 ----------
 document.getElementById('refreshBtn').onclick = refresh;
