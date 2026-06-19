@@ -14,7 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'pw') 
 $settlements = settlements_all();
 
 // 選定要顯示的結算期（期間選擇器；預設最新一期）
-$activeId = (int)($_GET['s'] ?? ($settlements[0]['id'] ?? 0));
+$remitMsg = '';
+$activeId = (int)($_GET['s'] ?? $_POST['settlement_id'] ?? ($settlements[0]['id'] ?? 0));
+
+// 處理房客填寫轉入末五碼 + 轉帳完成勾選（僅供 Aries 對帳參考，不影響繳費狀態）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'remit') {
+    check_csrf();
+    $last5 = preg_replace('/\D/', '', $_POST['remit_last5'] ?? '');
+    $last5 = substr($last5, -5);
+    $checked = isset($_POST['tenant_checked']);
+    save_remit_info($activeId, (int)$user['id'], $last5, $checked);
+    $remitMsg = '已儲存，謝謝！';
+}
 $active = null;
 foreach ($settlements as $s) if ((int)$s['id'] === $activeId) $active = $s;
 if (!$active && $settlements) { $active = $settlements[0]; $activeId = (int)$active['id']; }
@@ -131,6 +142,27 @@ function bill_detail_html(array $b): string {
           <div class="pay-row"><span>帳號</span><b><?= h(BANK_ACCT) ?></b><button class="btn-copy" data-copy="<?= h(BANK_ACCT) ?>">複製</button></div>
           <div class="pay-row"><span>金額</span><b>NT$<?= number_format($due) ?></b><button class="btn-copy" data-copy="<?= $due ?>">複製</button></div>
           <div class="pay-hint">匯款後由 Aries 確認到帳，狀態會更新為「已繳」。</div>
+        </div>
+
+        <!-- 轉帳資訊登記（僅供 Aries 對帳參考，不會自動標記已繳）-->
+        <div class="pay-box">
+          <div class="pay-title">登記轉帳資訊</div>
+          <?php if ($remitMsg): ?><div class="alert info"><?= h($remitMsg) ?></div><?php endif; ?>
+          <form method="post" class="form">
+            <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
+            <input type="hidden" name="action" value="remit">
+            <input type="hidden" name="settlement_id" value="<?= $activeId ?>">
+            <label>轉入帳號末五碼
+              <input type="text" name="remit_last5" inputmode="numeric" maxlength="5" pattern="\d{5}"
+                     placeholder="例：12345" value="<?= h($pay['remit_last5'] ?? '') ?>">
+            </label>
+            <label class="pay-checkline">
+              <input type="checkbox" name="tenant_checked" value="1" <?= !empty($pay['tenant_checked']) ? 'checked' : '' ?>>
+              我已完成轉帳
+            </label>
+            <button type="submit" class="btn btn-primary btn-block">儲存</button>
+          </form>
+          <div class="pay-hint">此登記僅供 Aries 對帳參考，繳費狀態仍由 Aries 確認後更新。</div>
         </div>
       <?php endif; ?>
 

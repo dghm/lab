@@ -5,6 +5,9 @@
 -- ============================================================
 --  既有資料庫升級（已部署過、不想重新匯入整份 schema 的話）：
 --  ALTER TABLE bills ADD COLUMN attachment_path VARCHAR(255) DEFAULT NULL AFTER note;
+--  ALTER TABLE payments ADD COLUMN remit_last5 VARCHAR(5) DEFAULT NULL AFTER paid_date;
+--  ALTER TABLE payments ADD COLUMN tenant_checked TINYINT(1) NOT NULL DEFAULT 0 AFTER remit_last5;
+--  ALTER TABLE payments ADD COLUMN tenant_checked_at TIMESTAMP NULL DEFAULT NULL AFTER tenant_checked;
 -- ============================================================
 SET NAMES utf8mb4;
 SET time_zone = '+08:00';
@@ -56,6 +59,9 @@ CREATE TABLE IF NOT EXISTS payments (
   user_id       INT NOT NULL,
   status        ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
   paid_date     DATE DEFAULT NULL,
+  remit_last5      VARCHAR(5) DEFAULT NULL,        -- 房客填寫的轉入帳號末五碼，僅供 Aries 對帳參考，不影響 status
+  tenant_checked    TINYINT(1) NOT NULL DEFAULT 0,  -- 房客自行勾選「轉帳完成」，僅供參考，不影響 status
+  tenant_checked_at TIMESTAMP NULL DEFAULT NULL,
   updated_by    VARCHAR(64) DEFAULT NULL,
   updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_settle_user (settlement_id, user_id),

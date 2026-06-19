@@ -148,6 +148,12 @@ foreach ($settlements as $s) if ((int)$s['id'] === $activeId) $active = $s;
               <div class="pc-room"><?= h($t['room']) ?> 室 · <?= h($t['display_name']) ?></div>
               <div class="pc-amt">NT$<?= number_format($due) ?></div>
               <div class="pc-status"><?= $paid ? '已繳 · '.roc($p['paid_date']) : '未繳' ?></div>
+              <?php if (!empty($p['remit_last5']) || !empty($p['tenant_checked'])): ?>
+                <div class="pc-remit">
+                  <?php if (!empty($p['remit_last5'])): ?>轉入末五碼：<b><?= h($p['remit_last5']) ?></b><br><?php endif; ?>
+                  <?= !empty($p['tenant_checked']) ? '✓ 房客已勾選轉帳完成' : '房客尚未勾選轉帳完成' ?>
+                </div>
+              <?php endif; ?>
               <form method="post" style="margin:0">
                 <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
                 <input type="hidden" name="action" value="toggle_payment">

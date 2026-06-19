@@ -179,6 +179,17 @@ function payment_for(int $settlementId, int $userId): ?array {
     return $stmt->fetch() ?: null;
 }
 
+// 房客填寫轉入帳號末五碼 + 勾選「轉帳完成」，僅供 Aries 對帳參考，不影響 payments.status
+function save_remit_info(int $settlementId, int $userId, string $last5, bool $checked): void {
+    $checkedAt = $checked ? date('Y-m-d H:i:s') : null;
+    $stmt = db()->prepare(
+        'INSERT INTO payments (settlement_id, user_id, remit_last5, tenant_checked, tenant_checked_at)
+         VALUES (?,?,?,?,?)
+         ON DUPLICATE KEY UPDATE remit_last5 = VALUES(remit_last5),
+           tenant_checked = VALUES(tenant_checked), tenant_checked_at = VALUES(tenant_checked_at)');
+    $stmt->execute([$settlementId, $userId, $last5 !== '' ? $last5 : null, $checked ? 1 : 0, $checkedAt]);
+}
+
 /* ============ 帳單附件 ============ */
 
 const BILL_UPLOAD_DIR = __DIR__ . '/uploads/bills';
