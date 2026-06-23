@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>球場預約系統</title>
+<link rel="stylesheet" href="brand-tokens.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><img src="logo.svg" alt="logo" class="logo-icon" /> 球場預約系統</h1>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="filters">
+        <label>
+          日期
+          <input type="date" id="date-picker" />
+        </label>
+      </div>
+
+      <div id="grid-container"></div>
+      <p id="grid-hint">點選空白時段即可快速預約（每日最多 2 個時段）。</p>
+    </section>
+  </main>
+
+  <div id="confirm-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3>確認預約</h3>
+      <p id="confirm-text"></p>
+      <div class="modal-actions">
+        <button id="confirm-cancel" class="secondary">取消</button>
+        <button id="confirm-ok">確認預約</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

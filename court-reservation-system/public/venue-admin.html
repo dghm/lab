@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>場館管理 - 球場預約系統</title>
+<link rel="stylesheet" href="brand-tokens.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><img src="logo.svg" alt="logo" class="logo-icon" /> 球場預約系統</h1>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <section class="card" id="venue-picker-card">
+      <label>
+        選擇場館
+        <select id="venue-picker"></select>
+      </label>
+    </section>
+
+    <section class="card">
+      <h2>球場管理</h2>
+      <form id="court-form">
+        <label>球場名稱 <input type="text" id="court-name" required /></label>
+        <label>位置 <input type="text" id="court-location" /></label>
+        <button type="submit">新增球場</button>
+      </form>
+      <table id="courts-table">
+        <thead><tr><th>名稱</th><th>位置</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>教練管理</h2>
+      <p class="hint">輸入此場館「現有會員」的 Email，將其升級為教練。</p>
+      <form id="coach-form">
+        <label>會員 Email <input type="email" id="coach-email" required /></label>
+        <button type="submit">設為教練</button>
+      </form>
+      <table id="coaches-table">
+        <thead><tr><th>姓名</th><th>Email</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>預約總覽</h2>
+      <label>
+        日期
+        <input type="date" id="admin-filter-date" />
+      </label>
+      <table id="admin-bookings-table">
+        <thead><tr><th>球場</th><th>會員</th><th>日期</th><th>時段</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    (async () => {
+      const user = await requireLogin();
+      if (!user) return;
+      if (user.role !== 'venue_admin' && user.role !== 'owner') {
+        window.location.href = 'index.html';
+        return;
+      }
+      renderNav(user, 'venue-admin.html');
+
+      const venuePickerCard = document.getElementById('venue-picker-card');
+      const venuePicker = document.getElementById('venue-picker');
+      const courtForm = document.getElementById('court-form');
+      const courtsTableBody = document.querySelector('#courts-table tbody');
+      const coachForm = document.getElementById('coach-form');
+      const coachesTableBody = document.querySelector('#coaches-table tbody');
+      const bookingsTableBody = document.querySelector('#admin-bookings-table tbody');
+      const filterDate = document.getElementById('admin-filter-date');
+
+      let venueId = user.venue_id;
+
+      if (user.role === 'owner') {
+        const res = await fetch('/api/owner/venues');
+        const venues = await res.json();
+        venuePicker.innerHTML = venues.map((v) => `<option value="${v.id}">${v.name}</option>`).join('');
+        venueId = Number(venuePicker.value);
+        venuePicker.addEventListener('change', () => {
+          venueId = Number(venuePicker.value);
+          loadAll();
+        });
+      } else {
+        venuePickerCard.classList.add('hidden');
+      }
+
+      function withVenue(url) {
+        const u = new URL(url, window.location.origin);
+        if (user.role === 'owner') u.searchParams.set('venue_id', venueId);
+        return u.pathname + '?' + u.searchParams.toString();
+      }
+
+      async function loadCourts() {
+        const res = await fetch(withVenue('/api/venue-admin/courts'));
+        const courts = await res.json();
+        courtsTableBody.innerHTML = courts
+          .map(
+            (c) => `
+            <tr>
+              <td>${c.name}</td>
+              <td>${c.location || ''}</td>
+              <td><button class="delete-btn" data-id="${c.id}">刪除</button></td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      async function loadCoaches() {
+        const res = await fetch(withVenue('/api/venue-admin/coaches'));
+        const coaches = await res.json();
+        coachesTableBody.innerHTML = coaches
+          .map(
+            (c) => `
+            <tr>
+              <td>${c.name}</td>
+              <td>${c.email}</td>
+              <td><button class="coach-delete-btn" data-id="${c.id}">取消教練資格</button></td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      async function loadBookings() {
+        const params = new URLSearchParams();
+        if (filterDate.value) params.set('date', filterDate.value);
+        if (user.role === 'owner') params.set('venue_id', venueId);
+        const res = await fetch(`/api/venue-admin/bookings?${params.toString()}`);
+        const bookings = await res.json();
+        bookingsTableBody.innerHTML = bookings
+          .map(
+            (b) => `
+            <tr>
+              <td>${b.court_name}</td>
+              <td>${b.booker_name} (${b.booker_email})</td>
+              <td>${b.booking_date}</td>
+              <td>${b.start_time} - ${b.end_time}</td>
+              <td><button class="booking-delete-btn" data-id="${b.id}">取消</button></td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      async function loadAll() {
+        await Promise.all([loadCourts(), loadCoaches(), loadBookings()]);
+      }
+
+      courtForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = { name: document.getElementById('court-name').value, location: document.getElementById('court-location').value };
+        if (user.role === 'owner') body.venue_id = venueId;
+        const res = await fetch('/api/venue-admin/courts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          e.target.reset();
+          loadCourts();
+        } else {
+          alert((await res.json()).error || '新增失敗');
+        }
+      });
+
+      courtsTableBody.addEventListener('click', async (e) => {
+        if (!e.target.matches('.delete-btn')) return;
+        if (!confirm('刪除球場將同時刪除其所有預約，確定嗎？')) return;
+        await fetch(withVenue(`/api/venue-admin/courts/${e.target.dataset.id}`), { method: 'DELETE' });
+        loadCourts();
+      });
+
+      coachForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const body = { email: document.getElementById('coach-email').value };
+        if (user.role === 'owner') body.venue_id = venueId;
+        const res = await fetch('/api/venue-admin/coaches', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          e.target.reset();
+          loadCoaches();
+        } else {
+          alert((await res.json()).error || '設定失敗');
+        }
+      });
+
+      coachesTableBody.addEventListener('click', async (e) => {
+        if (!e.target.matches('.coach-delete-btn')) return;
+        if (!confirm('確定要取消此教練資格嗎？')) return;
+        await fetch(withVenue(`/api/venue-admin/coaches/${e.target.dataset.id}`), { method: 'DELETE' });
+        loadCoaches();
+      });
+
+      bookingsTableBody.addEventListener('click', async (e) => {
+        if (!e.target.matches('.booking-delete-btn')) return;
+        if (!confirm('確定要取消此預約嗎？')) return;
+        await fetch(`/api/bookings/${e.target.dataset.id}`, { method: 'DELETE' });
+        loadBookings();
+      });
+
+      filterDate.addEventListener('change', loadBookings);
+
+      loadAll();
+    })();
+  </script>
+</body>
+</html>

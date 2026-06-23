@@ -1,0 +1,54 @@
+/* ============================================================
+   NY-Booking System — Brand Tokens
+   來源：客戶官方提供色彩規範（已確認）／業主認可子網站（視覺風格參考）
+   版本：v0.1
+   用法：文件模板於 <head> 加入
+     <link rel="stylesheet" href="../../Brand/tokens.css">
+     （路徑依文件所在層級調整相對路徑）
+   ============================================================ */
+
+:root {
+  /* ---- Primary（官方確認） ---- */
+  --ny-navy: #30A05F;        /* Brand */
+  --ny-accent: #999999;      /* Text */
+  --ny-pale: #0A0A0A;        /* Headings */
+  --ny-link: #30A05F;        /* Links */
+
+  /* ---- Neutral（官方確認） ---- */
+  --ny-ink: #FFFFFF;         /* Background */
+  --ny-gray: #18442B;        /* Brand Dark */
+  --ny-white: #EFF7F2;
+
+  /* ---- Derived（依官方色衍生，待確認） ---- */
+  --ny-navy-light: #78C197;   /* Derived Light */
+  --ny-accent-dark: #6F9C82;  /* Derived Dark */
+  --ny-row-stripe: #858585;   /* Derived 3 */
+
+  /* ---- Palette（自訂色票） ---- */
+  --ny-gold-1: #F7E334;   /* Gold-1 */
+  --ny-gold-2: #E4A801;   /* Gold-2 */
+
+  /* ---- Semantic mapping（對應官方色，已確認） ---- */
+  --ny-bg-pale: var(--ny-pale);
+  --ny-border: var(--ny-pale);
+  --ny-text-heading: var(--ny-navy);
+  --ny-text-body: var(--ny-ink);
+  --ny-text-muted: var(--ny-accent);
+
+  /* ---- Semantic（通用語意色，與品牌無關，維持不變） ---- */
+  --ny-note-bg: #FFF8E1;
+  --ny-note-border: #F0AD4E;
+  --ny-todo-bg: #FDECEA;
+  --ny-todo-border: #E07B6E;
+  --ny-todo-text: #C0392B;
+
+  /* ---- Typography ---- */
+  --ny-font: "Noto Sans", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* ---- Visual Style（每客戶可自訂） ---- */
+  --ny-radius-sm: 10px;    /* 按鈕、輸入框圓角 */
+  --ny-radius-lg: 16px;    /* 卡片圓角 */
+  --ny-shadow-card: 0 5px 10px 0 rgba(48, 160, 95, 0.4);  /* 卡片陰影（主色調柔陰影） */
+  --ny-overlay-dark: rgba(15, 23, 42, 0.55);             /* Hero 圖片深色疊層 */
+  --ny-tint-pale-15: rgba(10, 10, 10, 0.15);          /* 淡色疊色（表單區塊底色） */
+}

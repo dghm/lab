@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的預約 - 球場預約系統</title>
+<link rel="stylesheet" href="brand-tokens.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><img src="logo.svg" alt="logo" class="logo-icon" /> 球場預約系統</h1>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>我的預約</h2>
+      <div id="my-bookings-list"></div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    (async () => {
+      const user = await requireLogin();
+      if (!user) return;
+      if (user.role === 'owner') {
+        window.location.href = 'owner.html';
+        return;
+      }
+      renderNav(user, 'my-bookings.html');
+
+      const listEl = document.getElementById('my-bookings-list');
+
+      async function load() {
+        const res = await fetch('/api/bookings/mine');
+        const bookings = await res.json();
+
+        if (bookings.length === 0) {
+          listEl.innerHTML = '<p class="empty">尚無預約，前往「預約」頁面快速選一個時段吧！</p>';
+          return;
+        }
+
+        listEl.innerHTML = `
+          <table>
+            <thead><tr><th>球場</th><th>日期</th><th>時段</th><th></th></tr></thead>
+            <tbody>
+              ${bookings
+                .map(
+                  (b) => `
+                <tr>
+                  <td>${b.court_name}</td>
+                  <td>${b.booking_date}</td>
+                  <td>${b.start_time} - ${b.end_time}</td>
+                  <td><button class="delete-btn" data-id="${b.id}">取消</button></td>
+                </tr>`
+                )
+                .join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      listEl.addEventListener('click', async (e) => {
+        if (!e.target.matches('.delete-btn')) return;
+        if (!confirm('確定要取消此預約嗎？')) return;
+        const res = await fetch(`/api/bookings/${e.target.dataset.id}`, { method: 'DELETE' });
+        if (res.ok) load();
+        else alert('取消失敗');
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>登入 - 球場預約系統</title>
+<link rel="stylesheet" href="brand-tokens.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><img src="logo.svg" alt="logo" class="logo-icon" /> 球場預約系統</h1>
+  </header>
+
+  <main class="narrow">
+    <section class="card">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="login">登入</button>
+        <button class="tab-btn" data-tab="register">註冊</button>
+      </div>
+
+      <form id="login-form" class="tab-panel">
+        <label>Email <input type="email" id="login-email" required /></label>
+        <label>密碼 <input type="password" id="login-password" required /></label>
+        <button type="submit">登入</button>
+      </form>
+
+      <form id="register-form" class="tab-panel hidden">
+        <label>姓名 <input type="text" id="register-name" required /></label>
+        <label>Email <input type="email" id="register-email" required /></label>
+        <label>電話 <input type="tel" id="register-phone" /></label>
+        <label>場館 <select id="register-venue" required></select></label>
+        <label>密碼 <input type="password" id="register-password" required minlength="6" /></label>
+        <button type="submit">註冊</button>
+      </form>
+
+      <p id="auth-message"></p>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const panels = { login: document.getElementById('login-form'), register: document.getElementById('register-form') };
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        Object.entries(panels).forEach(([key, panel]) => {
+          panel.classList.toggle('hidden', key !== btn.dataset.tab);
+        });
+        document.getElementById('auth-message').textContent = '';
+      });
+    });
+
+    const message = document.getElementById('auth-message');
+
+    (async () => {
+      const res = await fetch('/api/venues');
+      const venues = await res.json();
+      const select = document.getElementById('register-venue');
+      select.innerHTML = venues.map((v) => `<option value="${v.id}">${v.name}</option>`).join('');
+    })();
+
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('login-email').value,
+          password: document.getElementById('login-password').value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = 'index.html';
+      } else {
+        message.style.color = 'red';
+        message.textContent = data.error || '登入失敗';
+      }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('register-name').value,
+          email: document.getElementById('register-email').value,
+          phone: document.getElementById('register-phone').value,
+          venue_id: document.getElementById('register-venue').value,
+          password: document.getElementById('register-password').value,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        window.location.href = 'index.html';
+      } else {
+        message.style.color = 'red';
+        message.textContent = data.error || '註冊失敗';
+      }
+    });
+  </script>
+</body>
+</html>

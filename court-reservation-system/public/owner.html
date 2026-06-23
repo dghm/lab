@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>業主後台 - 球場預約系統</title>
+<link rel="stylesheet" href="brand-tokens.css" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1><img src="logo.svg" alt="logo" class="logo-icon" /> 球場預約系統</h1>
+    <nav id="nav"></nav>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>場館總覽</h2>
+      <table id="overview-table">
+        <thead><tr><th>場館</th><th>球場數</th><th>累積預約數</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>場館管理</h2>
+      <form id="venue-form">
+        <label>場館名稱 <input type="text" id="venue-name" required /></label>
+        <label>地址 <input type="text" id="venue-address" /></label>
+        <button type="submit">新增場館</button>
+      </form>
+      <table id="venues-table">
+        <thead><tr><th>名稱</th><th>地址</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>場主管理</h2>
+      <p class="hint">輸入「現有會員」的 Email 並選擇場館，將其升級為該場館的場主。</p>
+      <form id="venue-admin-form">
+        <label>會員 Email <input type="email" id="venue-admin-email" required /></label>
+        <label>
+          場館
+          <select id="venue-admin-venue"></select>
+        </label>
+        <button type="submit">設為場主</button>
+      </form>
+      <table id="venue-admins-table">
+        <thead><tr><th>姓名</th><th>Email</th><th>場館</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script>
+    (async () => {
+      const user = await requireLogin();
+      if (!user) return;
+      if (user.role !== 'owner') {
+        window.location.href = 'index.html';
+        return;
+      }
+      renderNav(user, 'owner.html');
+
+      const overviewTableBody = document.querySelector('#overview-table tbody');
+      const venueForm = document.getElementById('venue-form');
+      const venuesTableBody = document.querySelector('#venues-table tbody');
+      const venueAdminForm = document.getElementById('venue-admin-form');
+      const venueAdminVenueSelect = document.getElementById('venue-admin-venue');
+      const venueAdminsTableBody = document.querySelector('#venue-admins-table tbody');
+
+      async function loadOverview() {
+        const res = await fetch('/api/owner/overview');
+        const rows = await res.json();
+        overviewTableBody.innerHTML = rows
+          .map((r) => `<tr><td>${r.venue_name}</td><td>${r.court_count}</td><td>${r.booking_count}</td></tr>`)
+          .join('');
+      }
+
+      async function loadVenues() {
+        const res = await fetch('/api/owner/venues');
+        const venues = await res.json();
+        venuesTableBody.innerHTML = venues
+          .map(
+            (v) => `
+            <tr>
+              <td>${v.name}</td>
+              <td>${v.address || ''}</td>
+              <td><button class="venue-delete-btn" data-id="${v.id}">刪除</button></td>
+            </tr>`
+          )
+          .join('');
+        venueAdminVenueSelect.innerHTML = venues.map((v) => `<option value="${v.id}">${v.name}</option>`).join('');
+      }
+
+      async function loadVenueAdmins() {
+        const res = await fetch('/api/owner/venue-admins');
+        const admins = await res.json();
+        venueAdminsTableBody.innerHTML = admins
+          .map(
+            (a) => `
+            <tr>
+              <td>${a.name}</td>
+              <td>${a.email}</td>
+              <td>${a.venue_name}</td>
+              <td><button class="venue-admin-delete-btn" data-id="${a.id}">移除場主</button></td>
+            </tr>`
+          )
+          .join('');
+      }
+
+      venueForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch('/api/owner/venues', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('venue-name').value,
+            address: document.getElementById('venue-address').value,
+          }),
+        });
+        if (res.ok) {
+          e.target.reset();
+          loadVenues();
+          loadOverview();
+        } else {
+          alert((await res.json()).error || '新增失敗');
+        }
+      });
+
+      venuesTableBody.addEventListener('click', async (e) => {
+        if (!e.target.matches('.venue-delete-btn')) return;
+        if (!confirm('刪除場館將同時刪除其所有球場與預約，確定嗎？')) return;
+        await fetch(`/api/owner/venues/${e.target.dataset.id}`, { method: 'DELETE' });
+        loadVenues();
+        loadOverview();
+        loadVenueAdmins();
+      });
+
+      venueAdminForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const res = await fetch('/api/owner/venue-admins', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('venue-admin-email').value,
+            venue_id: venueAdminVenueSelect.value,
+          }),
+        });
+        if (res.ok) {
+          e.target.reset();
+          loadVenueAdmins();
+        } else {
+          alert((await res.json()).error || '設定失敗');
+        }
+      });
+
+      venueAdminsTableBody.addEventListener('click', async (e) => {
+        if (!e.target.matches('.venue-admin-delete-btn')) return;
+        if (!confirm('確定要移除此場主資格嗎？')) return;
+        await fetch(`/api/owner/venue-admins/${e.target.dataset.id}`, { method: 'DELETE' });
+        loadVenueAdmins();
+      });
+
+      loadOverview();
+      loadVenues();
+      loadVenueAdmins();
+    })();
+  </script>
+</body>
+</html>
