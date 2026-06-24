@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股追蹤工具 | Lab</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <a class="back-link" href="/">← 回工具總覽</a>
+  <header class="page-header">
+    <div>
+      <h1>台股追蹤工具</h1>
+      <p class="subtitle">搜尋台灣上市個股，加入追蹤清單觀察即時收盤資訊。資料來源：證交所 OpenAPI。</p>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" aria-label="切換深色/淺色模式">☀️</button>
+  </header>
+
+  <section class="panel">
+    <h2>搜尋個股</h2>
+    <div class="search-row">
+      <input id="search-input" type="text" placeholder="輸入股票代號或名稱，例如 2330 或 台積電" autocomplete="off">
+      <button id="refresh-btn" class="btn">重新整理資料</button>
+    </div>
+    <div id="search-status" class="status-line"></div>
+    <div id="search-results" class="search-results"></div>
+  </section>
+
+  <section class="panel">
+    <h2>追蹤清單</h2>
+    <div id="updated-at" class="status-line"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>代號</th>
+            <th>名稱</th>
+            <th>收盤</th>
+            <th>漲跌</th>
+            <th>開盤</th>
+            <th>最高</th>
+            <th>最低</th>
+            <th>成交量</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="watchlist-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="page-footer">
+    <span>萬能數維有限公司（DGHM）</span>
+    <span>·</span>
+    <a href="mailto:help@dghm.tw">help@dghm.tw</a>
+  </footer>
+</main>
+<script src="theme.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
