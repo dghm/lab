@@ -366,3 +366,23 @@ tbody tr:hover {
   text-decoration: none;
   color: var(--text);
 }
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
+}
+
+.detail-table th,
+.detail-table td {
+  text-align: right;
+  padding: 0.3rem 0.4rem;
+  border-bottom: 1px solid var(--card-border);
+  white-space: nowrap;
+}
+
+.detail-table th:first-child,
+.detail-table td:first-child {
+  text-align: left;
+}

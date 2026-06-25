@@ -3,6 +3,7 @@
   var BWIBBU_URL = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL";
   var REVENUE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap05_L";
   var BALANCE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap07_L";
+  var CONCENTRATION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5";
 
   var CACHE_KEY = "tw-stock-cache-v1";
   var WATCHLIST_KEY = "tw-stock-watchlist-v1";
@@ -16,6 +17,7 @@
   var valuationMap = null; // PER / dividend yield / PBR
   var revenueMap = null; // monthly revenue
   var balanceMap = null; // balance sheet
+  var concentrationMap = null; // TDCC shareholding distribution (by tier)
   var fundamentalsLoading = false;
 
   var searchInput = document.getElementById("search-input");
@@ -153,20 +155,20 @@
 
   // ---- fundamentals (valuation / revenue / balance sheet) ----
 
-  function findField(obj, keywords) {
+  function findField(obj, label, excludeLabel) {
+    if (Object.prototype.hasOwnProperty.call(obj, label)) return obj[label];
     var keys = Object.keys(obj);
     for (var i = 0; i < keys.length; i++) {
       var k = keys[i];
-      var matchesAll = keywords.every(function (kw) {
-        return k.indexOf(kw) !== -1;
-      });
-      if (matchesAll) return obj[k];
+      if (k.indexOf(label) !== -1 && (!excludeLabel || k.indexOf(excludeLabel) === -1)) {
+        return obj[k];
+      }
     }
     return undefined;
   }
 
   function recordCode(obj) {
-    return obj.Code || obj["公司代號"] || obj["Code"] || "";
+    return obj.Code || obj["公司代號"] || obj["證券代號"] || "";
   }
 
   function fetchJsonCached(url, cacheKey, maxAge, force) {
@@ -205,8 +207,84 @@
     return map;
   }
 
+  // TDCC's open data endpoint returns either JSON or a plain CSV body depending
+  // on dataset; handle both so a format change degrades gracefully instead of throwing.
+  function parseJsonOrCsv(text) {
+    var trimmed = text.replace(/^﻿/, "").trim();
+    if (trimmed.charAt(0) === "[" || trimmed.charAt(0) === "{") {
+      return JSON.parse(trimmed);
+    }
+    var lines = trimmed.split(/\r?\n/).filter(Boolean);
+    if (lines.length < 2) return [];
+    var headers = lines[0].split(",").map(function (h) {
+      return h.trim();
+    });
+    return lines.slice(1).map(function (line) {
+      var cols = line.split(",");
+      var obj = {};
+      headers.forEach(function (h, i) {
+        obj[h] = (cols[i] || "").trim();
+      });
+      return obj;
+    });
+  }
+
+  function fetchTextCached(url, cacheKey, maxAge, force) {
+    var cacheRaw = null;
+    try {
+      cacheRaw = JSON.parse(localStorage.getItem(cacheKey));
+    } catch (e) {
+      cacheRaw = null;
+    }
+
+    if (!force && cacheRaw && Date.now() - cacheRaw.fetchedAt < maxAge) {
+      return Promise.resolve(cacheRaw.data);
+    }
+
+    return fetch(url)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      })
+      .then(function (text) {
+        var data = parseJsonOrCsv(text);
+        localStorage.setItem(cacheKey, JSON.stringify({ data: data, fetchedAt: Date.now() }));
+        return data;
+      })
+      .catch(function (err) {
+        if (cacheRaw) return cacheRaw.data;
+        throw err;
+      });
+  }
+
+  function groupConcentrationByCode(rows) {
+    var byCode = {};
+    rows.forEach(function (row) {
+      var code = findField(row, "證券代號") || findField(row, "代號");
+      if (!code) return;
+      if (!byCode[code]) byCode[code] = [];
+      byCode[code].push(row);
+    });
+
+    var result = {};
+    Object.keys(byCode).forEach(function (code) {
+      var rowsForCode = byCode[code];
+      var latestDate = rowsForCode.reduce(function (max, row) {
+        var d = findField(row, "資料日期") || "";
+        return d > max ? d : max;
+      }, "");
+      result[code] = {
+        date: latestDate,
+        tiers: rowsForCode.filter(function (row) {
+          return (findField(row, "資料日期") || "") === latestDate;
+        })
+      };
+    });
+    return result;
+  }
+
   function ensureFundamentalsLoaded() {
-    if (valuationMap && revenueMap && balanceMap) {
+    if (valuationMap && revenueMap && balanceMap && concentrationMap) {
       return Promise.resolve();
     }
     if (fundamentalsLoading) {
@@ -216,11 +294,17 @@
     fundamentalsLoading = Promise.all([
       fetchJsonCached(BWIBBU_URL, "tw-stock-valuation-v1", FUNDAMENTALS_MAX_AGE_MS, false),
       fetchJsonCached(REVENUE_URL, "tw-stock-revenue-v1", FUNDAMENTALS_MAX_AGE_MS, false),
-      fetchJsonCached(BALANCE_URL, "tw-stock-balance-v1", FUNDAMENTALS_MAX_AGE_MS, false)
+      fetchJsonCached(BALANCE_URL, "tw-stock-balance-v1", FUNDAMENTALS_MAX_AGE_MS, false),
+      fetchTextCached(CONCENTRATION_URL, "tw-stock-concentration-v1", FUNDAMENTALS_MAX_AGE_MS, false).catch(
+        function () {
+          return [];
+        }
+      )
     ]).then(function (results) {
       valuationMap = keyByCode(results[0]);
       revenueMap = keyByCode(results[1]);
       balanceMap = keyByCode(results[2]);
+      concentrationMap = groupConcentrationByCode(results[3]);
     });
 
     return fundamentalsLoading;
@@ -242,9 +326,9 @@
     var val = valuationMap[code];
     html += '<h3 class="detail-section-title">市場評價</h3>';
     if (val) {
-      var per = findField(val, ["本益比"]) || val.PEratio;
-      var yieldPct = findField(val, ["殖利率"]) || val.DividendYield;
-      var pbr = findField(val, ["淨值比"]) || val.PBratio;
+      var per = findField(val, "本益比") || val.PEratio;
+      var yieldPct = findField(val, "殖利率") || val.DividendYield;
+      var pbr = findField(val, "淨值比") || val.PBratio;
       html += buildDetailRow("本益比 (PER)", per);
       html += buildDetailRow("殖利率", yieldPct ? yieldPct + "%" : null);
       html += buildDetailRow("股價淨值比 (PBR)", pbr);
@@ -255,10 +339,10 @@
     var rev = revenueMap[code];
     html += '<h3 class="detail-section-title">月營收</h3>';
     if (rev) {
-      var period = findField(rev, ["資料年月"]);
-      var current = findField(rev, ["當月營收"]);
-      var momPct = findField(rev, ["上月比較增減"]);
-      var yoyPct = findField(rev, ["去年同月增減"]) || findField(rev, ["去年同月比較增減"]);
+      var period = findField(rev, "資料年月");
+      var current = findField(rev, "當月營收");
+      var momPct = findField(rev, "上月比較增減");
+      var yoyPct = findField(rev, "去年同月增減") || findField(rev, "去年同月比較增減");
       html += buildDetailRow("資料年月", period);
       html += buildDetailRow("當月營收（千元）", current ? Number(current).toLocaleString("zh-TW") : null);
       html += buildDetailRow("較上月增減", momPct ? momPct + "%" : null);
@@ -268,21 +352,45 @@
     }
 
     var bal = balanceMap[code];
-    html += '<h3 class="detail-section-title">資產負債</h3>';
+    html += '<h3 class="detail-section-title">資產負債（關鍵比率）</h3>';
     if (bal) {
-      var assets = parseFloat(findField(bal, ["資產總額"]));
-      var liabilities = parseFloat(findField(bal, ["負債總額"]));
-      var equity = parseFloat(findField(bal, ["權益總額"]));
+      var assets = parseFloat(findField(bal, "資產總額"));
+      var liabilities = parseFloat(findField(bal, "負債總額"));
+      var equity = parseFloat(findField(bal, "權益總額"));
+      var currentAssets = parseFloat(findField(bal, "流動資產", "非流動"));
+      var currentLiabilities = parseFloat(findField(bal, "流動負債", "非流動"));
       var debtRatio = !isNaN(assets) && assets !== 0 && !isNaN(liabilities) ? (liabilities / assets) * 100 : null;
+      var currentRatio =
+        !isNaN(currentAssets) && !isNaN(currentLiabilities) && currentLiabilities !== 0
+          ? (currentAssets / currentLiabilities) * 100
+          : null;
       html += buildDetailRow("資產總額（千元）", isNaN(assets) ? null : assets.toLocaleString("zh-TW"));
       html += buildDetailRow("負債總額（千元）", isNaN(liabilities) ? null : liabilities.toLocaleString("zh-TW"));
       html += buildDetailRow("權益總額（千元）", isNaN(equity) ? null : equity.toLocaleString("zh-TW"));
       html += buildDetailRow("負債比", debtRatio !== null ? debtRatio.toFixed(2) + "%" : null);
+      html += buildDetailRow("流動比率", currentRatio !== null ? currentRatio.toFixed(2) + "%" : null);
     } else {
       html += buildDetailRow("資料", "查無資產負債資料（金融業等不適用一般業財報格式）");
     }
 
-    html += '<h3 class="detail-section-title">新聞與股權結構（外部連結）</h3>';
+    html += '<h3 class="detail-section-title">股權分散（集保庫存週報）</h3>';
+    var concentration = concentrationMap[code];
+    if (concentration && concentration.tiers.length) {
+      html += buildDetailRow("資料日期", concentration.date);
+      html += '<table class="detail-table"><thead><tr><th>持股分級</th><th>人數</th><th>占集保庫存比例</th></tr></thead><tbody>';
+      concentration.tiers.forEach(function (tier) {
+        var level = findField(tier, "持股分級") || "";
+        var holders = findField(tier, "人數") || "";
+        var pct = findField(tier, "比例") || "";
+        html +=
+          "<tr><td>" + level + "</td><td>" + Number(holders || 0).toLocaleString("zh-TW") + "</td><td>" + pct + "%</td></tr>";
+      });
+      html += "</tbody></table>";
+    } else {
+      html += buildDetailRow("資料", "查無股權分散資料");
+    }
+
+    html += '<h3 class="detail-section-title">新聞與董監持股（外部連結）</h3>';
     html += '<div class="detail-links">';
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
@@ -299,7 +407,7 @@
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://mops.twse.com.tw/mops/web/t05st03?TYPEK=&co_id=' +
       code +
-      '">公開資訊觀測站 — 公司基本資料</a>';
+      '">公開資訊觀測站 — 公司基本資料／董監持股</a>';
     html += "</div>";
 
     modalBody.innerHTML = html;
