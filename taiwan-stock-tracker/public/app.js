@@ -1,11 +1,22 @@
 (function () {
   var TWSE_URL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL";
+  var BWIBBU_URL = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL";
+  var REVENUE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap05_L";
+  var BALANCE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap07_L";
+
   var CACHE_KEY = "tw-stock-cache-v1";
   var WATCHLIST_KEY = "tw-stock-watchlist-v1";
   var CACHE_MAX_AGE_MS = 1000 * 60 * 30; // 30 minutes
+  var FUNDAMENTALS_MAX_AGE_MS = 1000 * 60 * 60 * 12; // 12 hours
 
   var stockMap = {}; // code -> {code, name, close, change, open, high, low, volume}
   var stockList = [];
+
+  // lazily-loaded fundamentals datasets, keyed by company code
+  var valuationMap = null; // PER / dividend yield / PBR
+  var revenueMap = null; // monthly revenue
+  var balanceMap = null; // balance sheet
+  var fundamentalsLoading = false;
 
   var searchInput = document.getElementById("search-input");
   var searchResults = document.getElementById("search-results");
@@ -13,6 +24,11 @@
   var watchlistBody = document.getElementById("watchlist-body");
   var refreshBtn = document.getElementById("refresh-btn");
   var updatedAt = document.getElementById("updated-at");
+
+  var modalOverlay = document.getElementById("detail-modal");
+  var modalBody = document.getElementById("detail-modal-body");
+  var modalTitle = document.getElementById("detail-modal-title");
+  var modalClose = document.getElementById("detail-modal-close");
 
   function loadWatchlist() {
     try {
@@ -135,6 +151,193 @@
     return sign + rec.change.toFixed(2) + " (" + sign + rec.changePct.toFixed(2) + "%)";
   }
 
+  // ---- fundamentals (valuation / revenue / balance sheet) ----
+
+  function findField(obj, keywords) {
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var matchesAll = keywords.every(function (kw) {
+        return k.indexOf(kw) !== -1;
+      });
+      if (matchesAll) return obj[k];
+    }
+    return undefined;
+  }
+
+  function recordCode(obj) {
+    return obj.Code || obj["公司代號"] || obj["Code"] || "";
+  }
+
+  function fetchJsonCached(url, cacheKey, maxAge, force) {
+    var cacheRaw = null;
+    try {
+      cacheRaw = JSON.parse(localStorage.getItem(cacheKey));
+    } catch (e) {
+      cacheRaw = null;
+    }
+
+    if (!force && cacheRaw && Date.now() - cacheRaw.fetchedAt < maxAge) {
+      return Promise.resolve(cacheRaw.data);
+    }
+
+    return fetch(url)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        localStorage.setItem(cacheKey, JSON.stringify({ data: data, fetchedAt: Date.now() }));
+        return data;
+      })
+      .catch(function (err) {
+        if (cacheRaw) return cacheRaw.data;
+        throw err;
+      });
+  }
+
+  function keyByCode(list) {
+    var map = {};
+    list.forEach(function (item) {
+      var code = recordCode(item);
+      if (code) map[code] = item;
+    });
+    return map;
+  }
+
+  function ensureFundamentalsLoaded() {
+    if (valuationMap && revenueMap && balanceMap) {
+      return Promise.resolve();
+    }
+    if (fundamentalsLoading) {
+      return fundamentalsLoading;
+    }
+
+    fundamentalsLoading = Promise.all([
+      fetchJsonCached(BWIBBU_URL, "tw-stock-valuation-v1", FUNDAMENTALS_MAX_AGE_MS, false),
+      fetchJsonCached(REVENUE_URL, "tw-stock-revenue-v1", FUNDAMENTALS_MAX_AGE_MS, false),
+      fetchJsonCached(BALANCE_URL, "tw-stock-balance-v1", FUNDAMENTALS_MAX_AGE_MS, false)
+    ]).then(function (results) {
+      valuationMap = keyByCode(results[0]);
+      revenueMap = keyByCode(results[1]);
+      balanceMap = keyByCode(results[2]);
+    });
+
+    return fundamentalsLoading;
+  }
+
+  function buildDetailRow(label, value) {
+    return (
+      '<div class="detail-row"><span class="detail-label">' +
+      label +
+      '</span><span class="detail-value">' +
+      (value === undefined || value === null || value === "" ? "—" : value) +
+      "</span></div>"
+    );
+  }
+
+  function renderFundamentals(code, name) {
+    var html = "";
+
+    var val = valuationMap[code];
+    html += '<h3 class="detail-section-title">市場評價</h3>';
+    if (val) {
+      var per = findField(val, ["本益比"]) || val.PEratio;
+      var yieldPct = findField(val, ["殖利率"]) || val.DividendYield;
+      var pbr = findField(val, ["淨值比"]) || val.PBratio;
+      html += buildDetailRow("本益比 (PER)", per);
+      html += buildDetailRow("殖利率", yieldPct ? yieldPct + "%" : null);
+      html += buildDetailRow("股價淨值比 (PBR)", pbr);
+    } else {
+      html += buildDetailRow("資料", "查無評價資料");
+    }
+
+    var rev = revenueMap[code];
+    html += '<h3 class="detail-section-title">月營收</h3>';
+    if (rev) {
+      var period = findField(rev, ["資料年月"]);
+      var current = findField(rev, ["當月營收"]);
+      var momPct = findField(rev, ["上月比較增減"]);
+      var yoyPct = findField(rev, ["去年同月增減"]) || findField(rev, ["去年同月比較增減"]);
+      html += buildDetailRow("資料年月", period);
+      html += buildDetailRow("當月營收（千元）", current ? Number(current).toLocaleString("zh-TW") : null);
+      html += buildDetailRow("較上月增減", momPct ? momPct + "%" : null);
+      html += buildDetailRow("較去年同月增減", yoyPct ? yoyPct + "%" : null);
+    } else {
+      html += buildDetailRow("資料", "查無營收資料");
+    }
+
+    var bal = balanceMap[code];
+    html += '<h3 class="detail-section-title">資產負債</h3>';
+    if (bal) {
+      var assets = parseFloat(findField(bal, ["資產總額"]));
+      var liabilities = parseFloat(findField(bal, ["負債總額"]));
+      var equity = parseFloat(findField(bal, ["權益總額"]));
+      var debtRatio = !isNaN(assets) && assets !== 0 && !isNaN(liabilities) ? (liabilities / assets) * 100 : null;
+      html += buildDetailRow("資產總額（千元）", isNaN(assets) ? null : assets.toLocaleString("zh-TW"));
+      html += buildDetailRow("負債總額（千元）", isNaN(liabilities) ? null : liabilities.toLocaleString("zh-TW"));
+      html += buildDetailRow("權益總額（千元）", isNaN(equity) ? null : equity.toLocaleString("zh-TW"));
+      html += buildDetailRow("負債比", debtRatio !== null ? debtRatio.toFixed(2) + "%" : null);
+    } else {
+      html += buildDetailRow("資料", "查無資產負債資料（金融業等不適用一般業財報格式）");
+    }
+
+    html += '<h3 class="detail-section-title">新聞與股權結構（外部連結）</h3>';
+    html += '<div class="detail-links">';
+    html +=
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
+      code +
+      '.TW">Yahoo奇摩股市 — 個股總覽</a>';
+    html +=
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
+      code +
+      '.TW/news">Yahoo奇摩股市 — 相關新聞</a>';
+    html +=
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://goodinfo.tw/tw/EquityDistributionClassHis.asp?STOCK_ID=' +
+      code +
+      '">Goodinfo — 股權分散表</a>';
+    html +=
+      '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://mops.twse.com.tw/mops/web/t05st03?TYPEK=&co_id=' +
+      code +
+      '">公開資訊觀測站 — 公司基本資料</a>';
+    html += "</div>";
+
+    modalBody.innerHTML = html;
+  }
+
+  function openDetailModal(code, name) {
+    modalTitle.textContent = code + " " + name;
+    modalBody.innerHTML = '<div class="status-line">載入基本面資料中…</div>';
+    modalOverlay.classList.add("open");
+
+    ensureFundamentalsLoaded()
+      .then(function () {
+        renderFundamentals(code, name);
+      })
+      .catch(function (err) {
+        modalBody.innerHTML =
+          '<div class="status-line error">無法載入基本面資料：' +
+          err.message +
+          "</div>" +
+          '<div class="detail-links">' +
+          '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
+          code +
+          '.TW">Yahoo奇摩股市 — 個股總覽</a>' +
+          "</div>";
+      });
+  }
+
+  function closeDetailModal() {
+    modalOverlay.classList.remove("open");
+  }
+
+  modalClose.addEventListener("click", closeDetailModal);
+  modalOverlay.addEventListener("click", function (e) {
+    if (e.target === modalOverlay) closeDetailModal();
+  });
+
+  // ---- search / watchlist rendering ----
+
   function renderSearchResults(query) {
     searchResults.innerHTML = "";
     if (!query) return;
@@ -201,8 +404,7 @@
       var tr = document.createElement("tr");
 
       if (!rec) {
-        tr.innerHTML =
-          '<td>' + code + '</td><td colspan="7">查無資料</td>';
+        tr.innerHTML = '<td>' + code + '</td><td colspan="7">查無資料</td>';
         var td = document.createElement("td");
         appendRemoveBtn(td, code);
         tr.appendChild(td);
@@ -214,13 +416,17 @@
 
       tr.innerHTML =
         "<td>" + rec.code + "</td>" +
-        "<td>" + rec.name + "</td>" +
+        '<td><button class="name-link" title="查看基本面詳細資料">' + rec.name + "</button></td>" +
         '<td class="' + changeClass + '">' + rec.close + "</td>" +
         '<td class="' + changeClass + '">' + formatChange(rec) + "</td>" +
         "<td>" + rec.open + "</td>" +
         "<td>" + rec.high + "</td>" +
         "<td>" + rec.low + "</td>" +
         "<td>" + Number(rec.volume).toLocaleString("zh-TW") + "</td>";
+
+      tr.querySelector(".name-link").addEventListener("click", function () {
+        openDetailModal(rec.code, rec.name);
+      });
 
       var actionTd = document.createElement("td");
       appendRemoveBtn(actionTd, code);
