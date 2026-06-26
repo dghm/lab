@@ -272,6 +272,16 @@ async function openTxnDialog(holdingId, name, currency, category, ticker) {
     txnDlg.showModal();
 }
 
+/** 台股：股數 × 成交單價 自動算出金額。 */
+function calcTwAmount() {
+    if (txnCategory !== 'tw_stock') return;
+    const qty = parseFloat(document.getElementById('txnQty').value);
+    const price = parseFloat(document.getElementById('txnUnitPrice').value);
+    if (!qty || !price) return;
+    document.getElementById('txnAmount').value = Math.round(qty * price);
+    estimateTwFee();
+}
+
 /** 台股手續費／交易稅估算（牌告費率，未反映券商折扣，僅供參考）。 */
 function estimateTwFee() {
     if (txnCategory !== 'tw_stock') return;
@@ -285,6 +295,8 @@ function estimateTwFee() {
     }
     document.getElementById('txnFee').value = fee;
 }
+document.getElementById('txnQty').addEventListener('input', calcTwAmount);
+document.getElementById('txnUnitPrice').addEventListener('input', calcTwAmount);
 document.getElementById('txnAmount').addEventListener('input', estimateTwFee);
 document.getElementById('txnType').addEventListener('change', estimateTwFee);
 
