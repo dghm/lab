@@ -264,6 +264,7 @@ function make_row(array $h, float $nativeValue, ?float $invested, float $rate,
         'stopStatus'  => $stop,
         'isDca'       => (int) $h['is_dca'] === 1,
         'nativeValue' => round($nativeValue, 4),
+        'ticker'      => $h['ticker'],
     ];
 }
 
@@ -381,6 +382,7 @@ function save_txn(array $d): array
     $keys = implode(',', array_keys($f));
     $vals = ':' . implode(',:', array_keys($f));
     db()->prepare("INSERT INTO transactions ($keys) VALUES ($vals)")->execute($f);
+    apply_txn_to_holding($f);
     return ['ok' => true, 'id' => (int)db()->lastInsertId()];
 }
 
@@ -388,4 +390,47 @@ function delete_txn(int $id): array
 {
     db()->prepare('DELETE FROM transactions WHERE id = ?')->execute([$id]);
     return ['ok' => true];
+}
+
+/** 交易記錄自動同步到持倉：買入/賣出調整 quantity+cost_base，配息調整 cum_dividend，換匯調整 balance。 */
+function apply_txn_to_holding(array $txn): void
+{
+    $stmt = db()->prepare('SELECT * FROM holdings WHERE id = ?');
+    $stmt->execute([$txn['holding_id']]);
+    $h = $stmt->fetch();
+    if (!$h) return;
+
+    $qty    = (float) ($txn['quantity'] ?? 0);
+    $amount = (float) $txn['amount'];
+    $fee    = (float) ($txn['fee'] ?? 0);
+
+    switch ($txn['txn_type']) {
+        case 'buy':
+            $newQty  = (float) $h['quantity'] + $qty;
+            $newCost = (float) ($h['cost_base'] ?? 0) + $amount + $fee;
+            db()->prepare('UPDATE holdings SET quantity=?, cost_base=?, cost_base_date=CURDATE() WHERE id=?')
+                ->execute([$newQty, $newCost, $h['id']]);
+            break;
+        case 'sell':
+            $oldQty = (float) $h['quantity'];
+            $oldCost = (float) ($h['cost_base'] ?? 0);
+            $newQty = max(0, $oldQty - $qty);
+            $costPerUnit = $oldQty > 0 ? $oldCost / $oldQty : 0;
+            $newCost = max(0, $oldCost - $costPerUnit * $qty);
+            db()->prepare('UPDATE holdings SET quantity=?, cost_base=?, cost_base_date=CURDATE() WHERE id=?')
+                ->execute([$newQty, $newCost, $h['id']]);
+            break;
+        case 'dividend':
+            $newDiv = (float) ($h['cum_dividend'] ?? 0) + $amount;
+            db()->prepare('UPDATE holdings SET cum_dividend=? WHERE id=?')->execute([$newDiv, $h['id']]);
+            break;
+        case 'fx_in':
+            $newBal = (float) ($h['balance'] ?? 0) + $amount;
+            db()->prepare('UPDATE holdings SET balance=? WHERE id=?')->execute([$newBal, $h['id']]);
+            break;
+        case 'fx_out':
+            $newBal = (float) ($h['balance'] ?? 0) - $amount - $fee;
+            db()->prepare('UPDATE holdings SET balance=? WHERE id=?')->execute([$newBal, $h['id']]);
+            break;
+    }
 }

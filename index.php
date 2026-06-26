@@ -158,8 +158,9 @@
             </div>
             <div class="row">
                 <label>金額（原幣）<input type="number" step="any" id="txnAmount" placeholder="必填"></label>
-                <label>手續費（原幣）<input type="number" step="any" id="txnFee" placeholder="選填"></label>
+                <label>手續費（原幣）<input type="number" step="any" id="txnFee" placeholder="台股會自動估算"></label>
             </div>
+            <p class="muted" style="font-size:12px;margin-top:-6px">台股手續費為牌告 0.1425% 估算值，未反映券商折扣，請依實際扣款調整。</p>
             <div class="row">
                 <label>數量 / 單位數<input type="number" step="any" id="txnQty" placeholder="選填"></label>
                 <label>成交單價<input type="number" step="any" id="txnUnitPrice" placeholder="選填"></label>

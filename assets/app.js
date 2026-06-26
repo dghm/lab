@@ -113,13 +113,13 @@ function renderHoldings(rows) {
             <td class="num ${plClass(r.pl)}">${r.returnPct != null ? r.returnPct + '%' : '—'}</td>
             <td>${stopBadge(r)}</td>
             <td class="ops">
-                <button class="link txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}">記錄</button>
+                <button class="link txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}" data-category="${r.category}" data-ticker="${r.ticker || ''}">記錄</button>
                 <button class="link edit" data-id="${r.id}">編輯</button>
                 <button class="link del" data-id="${r.id}">刪除</button>
             </td>
         </tr>`;
     }).join('');
-    tb.querySelectorAll('.txn').forEach(b => b.onclick = () => openTxnDialog(+b.dataset.id, b.dataset.name, b.dataset.currency));
+    tb.querySelectorAll('.txn').forEach(b => b.onclick = () => openTxnDialog(+b.dataset.id, b.dataset.name, b.dataset.currency, b.dataset.category, b.dataset.ticker));
     tb.querySelectorAll('.edit').forEach(b => b.onclick = () => openEdit(+b.dataset.id));
     tb.querySelectorAll('.del').forEach(b => b.onclick = () => removeHolding(+b.dataset.id));
 }
@@ -254,7 +254,10 @@ const txnDlg = document.getElementById('txnDialog');
 const txnForm = document.getElementById('txnForm');
 const TXN_LABEL = { buy: '買入/申購', sell: '賣出/贖回', dividend: '配息/分派', fx_in: '換匯流入', fx_out: '換匯流出/費用' };
 
-async function openTxnDialog(holdingId, name, currency) {
+let txnCategory = '', txnTicker = '';
+
+async function openTxnDialog(holdingId, name, currency, category, ticker) {
+    txnCategory = category || ''; txnTicker = ticker || '';
     document.getElementById('txnDlgTitle').textContent = `交易記錄：${name}`;
     document.getElementById('txnHoldingId').value = holdingId;
     document.getElementById('txnCurrency').value = currency;
@@ -268,6 +271,22 @@ async function openTxnDialog(holdingId, name, currency) {
     await loadTxnList(holdingId);
     txnDlg.showModal();
 }
+
+/** 台股手續費／交易稅估算（牌告費率，未反映券商折扣，僅供參考）。 */
+function estimateTwFee() {
+    if (txnCategory !== 'tw_stock') return;
+    const amount = parseFloat(document.getElementById('txnAmount').value);
+    const type = document.getElementById('txnType').value;
+    if (!amount || (type !== 'buy' && type !== 'sell')) return;
+    let fee = Math.round(amount * 0.001425);
+    if (type === 'sell') {
+        const isEtf = (txnTicker || '').startsWith('00');
+        fee += Math.round(amount * (isEtf ? 0.001 : 0.003));
+    }
+    document.getElementById('txnFee').value = fee;
+}
+document.getElementById('txnAmount').addEventListener('input', estimateTwFee);
+document.getElementById('txnType').addEventListener('change', estimateTwFee);
 
 async function loadTxnList(holdingId) {
     const res = await api(`txn_list&holding_id=${holdingId}`);
@@ -316,11 +335,14 @@ txnForm.onsubmit = async (e) => {
     document.getElementById('txnUnitPrice').value = '';
     document.getElementById('txnNote').value = '';
     await loadTxnList(holdingId);
+    await refresh();
     if (txnType === 'buy' || txnType === 'sell') {
         document.getElementById('txnHint').textContent =
-            '⚠ 記得回到持倉編輯，手動更新「持有單位數」和「累計投入基準」。';
+            '✅ 已自動更新持倉的「持有單位數」與「累計投入基準」。';
+    } else if (txnType === 'dividend') {
+        document.getElementById('txnHint').textContent = '✅ 已自動累加至「累計配息」。';
     } else {
-        document.getElementById('txnHint').textContent = '';
+        document.getElementById('txnHint').textContent = '✅ 已自動更新現金餘額。';
     }
 };
 
