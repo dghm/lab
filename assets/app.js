@@ -55,25 +55,53 @@ function renderSummary(s) {
     document.getElementById('warnings').innerHTML =
         (s.warnings || []).map(w => `<div class="warn">⚠ ${w}</div>`).join('');
 
-    pie('chartAsset', s.allocation.asset, 'asset');
-    pie('chartCategory', s.allocation.category, 'category');
-    pie('chartCurrency', s.allocation.currency, 'currency');
-    pie('chartRegion', s.allocation.region, 'region');
+    // 將「達標」優先於「接近」顯示在大卡片內的小徽章；其餘細節仍留在 #alerts/#warnings。
+    const badgeEl = document.getElementById('cardAlertBadge');
+    const hasAlert = (s.alerts || []).length > 0;
+    const hasWarning = (s.warnings || []).length > 0;
+    if (hasAlert) {
+        badgeEl.textContent = `🔴 ${s.alerts.length} 項已達停利目標`;
+        badgeEl.className = 'card-alert-badge hit';
+    } else if (hasWarning) {
+        badgeEl.textContent = `🟡 ${s.warnings.length} 項接近停利目標`;
+        badgeEl.className = 'card-alert-badge near';
+    } else {
+        badgeEl.className = 'card-alert-badge hidden';
+    }
+
+    pie('chartAsset', s.allocation.asset, 'asset', 'legendAsset');
+    pie('chartCategory', s.allocation.category, 'category', 'legendCategory');
+    pie('chartCurrency', s.allocation.currency, 'currency', 'legendCurrency');
+    pie('chartRegion', s.allocation.region, 'region', 'legendRegion');
 
     ROWS = s.rows;
     renderHoldings(ROWS);
     renderRebalance(s.rebalance);
 }
 
-function pie(id, data, dim) {
+const PIE_COLORS = ['#89b7ee', '#f2b33f', '#89cda0', '#f89f9f', '#b8a4e3', '#7fd0d0', '#e3c98a', '#c5c9d6'];
+
+function pie(id, data, dim, legendId) {
     const ctx = document.getElementById(id);
     if (charts[id]) charts[id].destroy();
+    const colors = data.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]);
     charts[id] = new Chart(ctx, {
         type: 'doughnut',
-        data: { labels: data.map(d => `${labelOf(dim, d.bucket)} (${d.pct}%)`),
-                datasets: [{ data: data.map(d => d.value) }] },
-        options: { plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } } },
+        data: { labels: data.map(d => labelOf(dim, d.bucket)),
+                datasets: [{ data: data.map(d => d.value), backgroundColor: colors, borderWidth: 0 }] },
+        options: { plugins: { legend: { display: false } }, cutout: '62%' },
     });
+    if (legendId) {
+        const legendEl = document.getElementById(legendId);
+        if (legendEl) {
+            legendEl.innerHTML = data.map((d, i) => `
+                <li class="legend-item">
+                    <span class="legend-dot" style="background:${colors[i]}"></span>
+                    <span class="legend-label">${labelOf(dim, d.bucket)}</span>
+                    <span class="legend-value">${d.pct}%</span>
+                </li>`).join('');
+        }
+    }
 }
 
 function stopBadge(r) {
@@ -102,6 +130,7 @@ function renderHoldings(rows) {
             : fmt(r.value);
         return `
         <tr>
+            <td class="drag-handle" aria-hidden="true">⠿</td>
             <td>${r.name}${r.isDca ? ' <span class="muted">定期</span>' : ''}</td>
             <td>${CAT_LABEL[r.category] || r.category}</td>
             <td>${assetLabel(r)}</td>
@@ -113,9 +142,9 @@ function renderHoldings(rows) {
             <td class="num ${plClass(r.pl)}">${r.returnPct != null ? r.returnPct + '%' : '—'}</td>
             <td>${stopBadge(r)}</td>
             <td class="ops">
-                <button class="link txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}" data-category="${r.category}" data-ticker="${r.ticker || ''}">記錄</button>
-                <button class="link edit" data-id="${r.id}">編輯</button>
-                <button class="link del" data-id="${r.id}">刪除</button>
+                <button class="icon-btn txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}" data-category="${r.category}" data-ticker="${r.ticker || ''}" title="交易記錄">🧾</button>
+                <button class="icon-btn edit" data-id="${r.id}" title="編輯">✎</button>
+                <button class="icon-btn del" data-id="${r.id}" title="刪除">🗑</button>
             </td>
         </tr>`;
     }).join('');

@@ -4,6 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>我的資產配置儀表板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=K2D:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
@@ -17,7 +20,11 @@
 </header>
 
 <section class="cards">
-    <div class="card big"><div class="label">總市值（TWD）</div><div id="totalValue" class="value">—</div></div>
+    <div class="card big">
+        <div class="label">總市值（TWD）</div>
+        <div id="totalValue" class="value">—</div>
+        <div id="cardAlertBadge" class="card-alert-badge hidden"></div>
+    </div>
     <div class="card"><div class="label">追蹤成本</div><div id="totalCost" class="value sm">—</div></div>
     <div class="card"><div class="label">未實現損益</div><div id="totalPl" class="value sm">—</div></div>
     <div class="card"><div class="label">USD / TWD</div><div id="fxRate" class="value sm">—</div></div>
@@ -27,13 +34,37 @@
 <div id="warnings" class="warnings"></div>
 
 <section class="charts">
-    <div class="chart-box"><h3>依股債（資產屬性）</h3><canvas id="chartAsset"></canvas></div>
-    <div class="chart-box"><h3>依資產類別</h3><canvas id="chartCategory"></canvas></div>
-    <div class="chart-box"><h3>依幣別</h3><canvas id="chartCurrency"></canvas></div>
-    <div class="chart-box"><h3>依地區</h3><canvas id="chartRegion"></canvas></div>
+    <div class="chart-box">
+        <h3>依股債（資產屬性）</h3>
+        <div class="chart-body">
+            <canvas id="chartAsset"></canvas>
+            <ul class="chart-legend" id="legendAsset"></ul>
+        </div>
+    </div>
+    <div class="chart-box">
+        <h3>依資產類別</h3>
+        <div class="chart-body">
+            <canvas id="chartCategory"></canvas>
+            <ul class="chart-legend" id="legendCategory"></ul>
+        </div>
+    </div>
+    <div class="chart-box">
+        <h3>依幣別</h3>
+        <div class="chart-body">
+            <canvas id="chartCurrency"></canvas>
+            <ul class="chart-legend" id="legendCurrency"></ul>
+        </div>
+    </div>
+    <div class="chart-box">
+        <h3>依地區</h3>
+        <div class="chart-body">
+            <canvas id="chartRegion"></canvas>
+            <ul class="chart-legend" id="legendRegion"></ul>
+        </div>
+    </div>
 </section>
 
-<section>
+<section class="panel">
     <div class="section-head">
         <h2>再平衡建議</h2>
         <button id="editTargetsBtn" class="ghost">設定目標配置</button>
@@ -45,27 +76,29 @@
     <p id="noTargets" class="muted hidden">尚未設定目標配置，點「設定目標配置」開始。</p>
 </section>
 
-<section>
+<section class="panel">
     <div class="section-head">
         <h2>持有部位</h2>
         <button id="addBtn">＋ 新增資產</button>
     </div>
     <div class="tab-bar" id="holdingTabs">
-        <button class="tab active" data-tab="all">全部</button>
-        <button class="tab" data-tab="tw_stock">台股</button>
-        <button class="tab" data-tab="fund">基金</button>
-        <button class="tab" data-tab="cash">現金</button>
+        <button class="tab active" data-tab="all"><span class="tab-avatar">∑</span>全部</button>
+        <button class="tab" data-tab="tw_stock"><span class="tab-avatar">台</span>台股</button>
+        <button class="tab" data-tab="fund"><span class="tab-avatar">基</span>基金</button>
+        <button class="tab" data-tab="cash"><span class="tab-avatar">$</span>現金</button>
     </div>
     <div id="tabSummary" class="tab-summary"></div>
     <table id="holdingsTable" class="data-table">
         <thead><tr>
-            <th>名稱</th><th>類別</th><th>屬性</th><th class="num">持有</th><th class="num">現價</th>
+            <th></th><th>名稱</th><th>類別</th><th>屬性</th><th class="num">持有</th><th class="num">現價</th>
             <th class="num">累計投入</th><th class="num">市值(TWD)</th><th class="num">損益</th>
             <th class="num">報酬率</th><th>停利</th><th></th>
         </tr></thead>
         <tbody></tbody>
     </table>
 </section>
+    </div>
+</div>
 
 <!-- 新增/編輯資產 -->
 <dialog id="holdingDialog">
