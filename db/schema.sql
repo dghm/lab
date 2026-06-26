@@ -56,6 +56,10 @@ CREATE TABLE IF NOT EXISTS transactions (
     fee         DECIMAL(20,4) DEFAULT NULL,
     currency    VARCHAR(8) NOT NULL DEFAULT 'TWD',
     note        VARCHAR(255) DEFAULT NULL,
+    applied_qty       DECIMAL(20,4) DEFAULT NULL, -- 實際套用到持倉 quantity 的增減量（刪除交易時回沖用）
+    applied_cost      DECIMAL(20,4) DEFAULT NULL, -- 實際套用到持倉 cost_base 的增減量
+    applied_balance   DECIMAL(20,4) DEFAULT NULL, -- 實際套用到持倉 balance 的增減量
+    applied_dividend  DECIMAL(20,4) DEFAULT NULL, -- 實際套用到持倉 cum_dividend 的增減量
     created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_holding (holding_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -382,17 +382,25 @@ function save_txn(array $d): array
     $keys = implode(',', array_keys($f));
     $vals = ':' . implode(',:', array_keys($f));
     db()->prepare("INSERT INTO transactions ($keys) VALUES ($vals)")->execute($f);
+    $f['id'] = (int) db()->lastInsertId();
     apply_txn_to_holding($f);
-    return ['ok' => true, 'id' => (int)db()->lastInsertId()];
+    return ['ok' => true, 'id' => $f['id']];
 }
 
 function delete_txn(int $id): array
 {
+    $stmt = db()->prepare('SELECT * FROM transactions WHERE id = ?');
+    $stmt->execute([$id]);
+    $txn = $stmt->fetch();
+    if ($txn) {
+        reverse_txn_from_holding($txn);
+    }
     db()->prepare('DELETE FROM transactions WHERE id = ?')->execute([$id]);
     return ['ok' => true];
 }
 
-/** 交易記錄自動同步到持倉：買入/賣出調整 quantity+cost_base，配息調整 cum_dividend，換匯調整 balance。 */
+/** 交易記錄自動同步到持倉：買入/賣出調整 quantity+cost_base，配息調整 cum_dividend，換匯調整 balance。
+ *  同時把實際套用的增減量寫回 transactions，供刪除交易時回沖用。 */
 function apply_txn_to_holding(array $txn): void
 {
     $stmt = db()->prepare('SELECT * FROM holdings WHERE id = ?');
@@ -404,33 +412,63 @@ function apply_txn_to_holding(array $txn): void
     $amount = (float) $txn['amount'];
     $fee    = (float) ($txn['fee'] ?? 0);
 
+    $dQty = 0.0; $dCost = 0.0; $dBalance = 0.0; $dDividend = 0.0;
+
     switch ($txn['txn_type']) {
         case 'buy':
-            $newQty  = (float) $h['quantity'] + $qty;
-            $newCost = (float) ($h['cost_base'] ?? 0) + $amount + $fee;
-            db()->prepare('UPDATE holdings SET quantity=?, cost_base=?, cost_base_date=CURDATE() WHERE id=?')
-                ->execute([$newQty, $newCost, $h['id']]);
+            $dQty  = $qty;
+            $dCost = $amount + $fee;
+            db()->prepare('UPDATE holdings SET quantity=quantity+?, cost_base=COALESCE(cost_base,0)+?, cost_base_date=CURDATE() WHERE id=?')
+                ->execute([$dQty, $dCost, $h['id']]);
             break;
         case 'sell':
             $oldQty = (float) $h['quantity'];
             $oldCost = (float) ($h['cost_base'] ?? 0);
-            $newQty = max(0, $oldQty - $qty);
             $costPerUnit = $oldQty > 0 ? $oldCost / $oldQty : 0;
-            $newCost = max(0, $oldCost - $costPerUnit * $qty);
-            db()->prepare('UPDATE holdings SET quantity=?, cost_base=?, cost_base_date=CURDATE() WHERE id=?')
-                ->execute([$newQty, $newCost, $h['id']]);
+            $cappedQty = min($qty, $oldQty);
+            $dQty  = -$cappedQty;
+            $dCost = -min($oldCost, $costPerUnit * $cappedQty);
+            db()->prepare('UPDATE holdings SET quantity=GREATEST(0, quantity+?), cost_base=GREATEST(0, COALESCE(cost_base,0)+?), cost_base_date=CURDATE() WHERE id=?')
+                ->execute([$dQty, $dCost, $h['id']]);
             break;
         case 'dividend':
-            $newDiv = (float) ($h['cum_dividend'] ?? 0) + $amount;
-            db()->prepare('UPDATE holdings SET cum_dividend=? WHERE id=?')->execute([$newDiv, $h['id']]);
+            $dDividend = $amount;
+            db()->prepare('UPDATE holdings SET cum_dividend=COALESCE(cum_dividend,0)+? WHERE id=?')->execute([$dDividend, $h['id']]);
             break;
         case 'fx_in':
-            $newBal = (float) ($h['balance'] ?? 0) + $amount;
-            db()->prepare('UPDATE holdings SET balance=? WHERE id=?')->execute([$newBal, $h['id']]);
+            $dBalance = $amount;
+            db()->prepare('UPDATE holdings SET balance=COALESCE(balance,0)+? WHERE id=?')->execute([$dBalance, $h['id']]);
             break;
         case 'fx_out':
-            $newBal = (float) ($h['balance'] ?? 0) - $amount - $fee;
-            db()->prepare('UPDATE holdings SET balance=? WHERE id=?')->execute([$newBal, $h['id']]);
+            $dBalance = -($amount + $fee);
+            db()->prepare('UPDATE holdings SET balance=COALESCE(balance,0)+? WHERE id=?')->execute([$dBalance, $h['id']]);
             break;
     }
+
+    if (!empty($txn['id'])) {
+        db()->prepare('UPDATE transactions SET applied_qty=?, applied_cost=?, applied_balance=?, applied_dividend=? WHERE id=?')
+            ->execute([$dQty, $dCost, $dBalance, $dDividend, $txn['id']]);
+    }
+}
+
+/** 刪除交易時，把當初套用到持倉的增減量加回去（回沖），讓持有股數/累計投入/餘額回到刪除前的狀態。 */
+function reverse_txn_from_holding(array $txn): void
+{
+    $stmt = db()->prepare('SELECT * FROM holdings WHERE id = ?');
+    $stmt->execute([$txn['holding_id']]);
+    $h = $stmt->fetch();
+    if (!$h) return;
+
+    $dQty      = (float) ($txn['applied_qty'] ?? 0);
+    $dCost     = (float) ($txn['applied_cost'] ?? 0);
+    $dBalance  = (float) ($txn['applied_balance'] ?? 0);
+    $dDividend = (float) ($txn['applied_dividend'] ?? 0);
+
+    db()->prepare('UPDATE holdings SET
+            quantity = GREATEST(0, quantity - ?),
+            cost_base = GREATEST(0, COALESCE(cost_base,0) - ?),
+            balance = COALESCE(balance,0) - ?,
+            cum_dividend = GREATEST(0, COALESCE(cum_dividend,0) - ?)
+        WHERE id = ?')
+        ->execute([$dQty, $dCost, $dBalance, $dDividend, $h['id']]);
 }
