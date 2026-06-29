@@ -60,7 +60,7 @@ function renderSummary(s) {
     const hasAlert = (s.alerts || []).length > 0;
     const hasWarning = (s.warnings || []).length > 0;
     if (hasAlert) {
-        badgeEl.textContent = `🔴 ${s.alerts.length} 項已達停利目標`;
+        badgeEl.textContent = `${s.alerts.length} 項已達停利目標`;
         badgeEl.className = 'card-alert-badge hit';
     } else if (hasWarning) {
         badgeEl.textContent = `🟡 ${s.warnings.length} 項接近停利目標`;
