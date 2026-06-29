@@ -3,7 +3,7 @@ name: Deploy myinvestment to Bluehost
 on:
   push:
     branches:
-      - claude/amazing-davinci-d0wypy
+      - main
     paths:
       - 'myinvestment/**'
 
