@@ -35,7 +35,8 @@ button.link { background: none; color: var(--brand); padding: 2px 6px; font-size
     background: var(--card); border: none; border-radius: 17px; padding: 18px 22px;
     box-shadow: 0 4px 16px rgba(31,36,48,.06); position: relative;
 }
-.card.big { flex: 1; }
+.card.big { flex: 1; background: #383838; color: #fff; }
+.card.big .label { color: #fff; }
 .card .label { color: var(--muted); font-size: 13px; }
 .card .value { font-size: 26px; font-weight: 700; margin-top: 4px; font-family: 'Inter', sans-serif; }
 
@@ -43,7 +44,7 @@ button.link { background: none; color: var(--brand); padding: 2px 6px; font-size
     display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 999px;
     font-size: 12px; font-weight: 600; color: #fff; background: #f2b33f;
 }
-.card-alert-badge.hit { background: #ed0000; }
+.card-alert-badge.hit { background: #f2b33f; }
 .card-alert-badge.near { background: #f2b33f; }
 
 .alerts { margin-bottom: 12px; }
