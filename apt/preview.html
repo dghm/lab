@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>公寓費用分攤 · 預覽</title><style>
+/* ===== 公寓費用分攤 Dashboard ===== */
+:root{
+  --blue:#1f4e79;        /* 主色，與你文件抬頭藍一致 */
+  --blue-d:#163a5c;
+  --ink:#1d2733;
+  --muted:#6b7785;
+  --line:#e3e8ee;
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --green:#1f8a4c;
+  --green-bg:#e8f6ed;
+  --amber:#b3540f;
+  --amber-bg:#fdeede;
+  --radius:14px;
+  --shadow:0 1px 3px rgba(20,40,70,.08),0 6px 20px rgba(20,40,70,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  background:var(--bg);color:var(--ink);line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h2,h3{margin:.2em 0 .6em}
+.muted{color:var(--muted)}
+.sm{font-size:.8rem}
+.r{text-align:right}
+.full{grid-column:1/-1}
+
+/* ---- 登入 ---- */
+.login-bg{min-height:100dvh;display:grid;place-items:center;
+  background:linear-gradient(150deg,var(--blue),var(--blue-d));padding:20px}
+.login-card{background:var(--card);width:100%;max-width:380px;border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:32px 26px}
+.brand{text-align:center;margin-bottom:20px}
+.brand-mark{width:54px;height:54px;border-radius:14px;background:var(--blue);color:#fff;
+  display:grid;place-items:center;font-size:26px;font-weight:700;margin:0 auto 12px}
+.brand h1{font-size:1.25rem;margin:0}
+.brand .sub{color:var(--muted);font-size:.85rem;margin:2px 0 0}
+.hint{color:var(--muted);font-size:.8rem;text-align:center;margin-top:16px}
+
+/* ---- 表單 ---- */
+.form label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:14px}
+.form input[type=text],.form input[type=password],.form input[type=date],
+.form input[type=number],.form select{
+  width:100%;margin-top:5px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
+  font-size:1rem;color:var(--ink);background:#fff}
+.form input:focus,.form select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(31,78,121,.12)}
+.form .chk{display:flex;align-items:center;gap:8px;color:var(--ink);margin-top:6px}
+.form .chk input{width:auto;margin:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media(max-width:560px){.grid2{grid-template-columns:1fr}}
+
+/* ---- 按鈕 ---- */
+.btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
+  padding:10px 16px;border-radius:10px;font-size:.95rem;cursor:pointer;font-family:inherit}
+.btn:hover{border-color:#c6cfd9}
+.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn-primary:hover{background:var(--blue-d)}
+.btn-block{width:100%}
+.btn-copy{margin-left:8px;font-size:.78rem;padding:4px 10px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;cursor:pointer;color:var(--blue)}
+.btn-x{border:none;background:transparent;color:#c0392b;cursor:pointer;font-size:.95rem}
+.link{color:#fff;text-decoration:none;background:rgba(255,255,255,.16);border:none;
+  padding:6px 12px;border-radius:8px;font-size:.85rem;cursor:pointer;font-family:inherit;margin-left:8px}
+
+/* ---- alert ---- */
+.alert{background:var(--amber-bg);color:var(--amber);padding:10px 14px;border-radius:10px;
+  font-size:.9rem;margin-bottom:14px}
+.alert.info{background:var(--green-bg);color:var(--green)}
+
+/* ---- topbar ---- */
+.topbar{background:var(--blue);color:#fff}
+.topbar.admin{background:var(--blue-d)}
+.topbar-in{max-width:760px;margin:0 auto;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+.t-title{font-weight:700;font-size:1.05rem}
+.t-sub{font-size:.78rem;opacity:.85}
+.wrap{max-width:760px;margin:0 auto;padding:18px}
+.sec{font-size:.95rem;color:var(--muted);margin:18px 0 8px;font-weight:600}
+.empty{color:var(--muted);text-align:center;padding:40px}
+
+/* ---- 期間選擇器 ---- */
+.period-picker{margin:4px 0 14px}
+.period-picker label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:5px}
+.period-picker select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+  font-size:1rem;background:#fff;color:var(--ink);
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7785' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center}
+.period-picker select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(31,78,121,.12)}
+
+/* ---- 本期應繳大數字 hero ---- */
+.hero{background:linear-gradient(145deg,var(--blue),var(--blue-d));color:#fff;
+  border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);margin-bottom:16px}
+.hero.is-paid{background:linear-gradient(145deg,#1f8a4c,#166b3a)}
+.hero-label{font-size:.85rem;opacity:.9;display:flex;align-items:center;gap:8px}
+.hero-amt{font-size:2.6rem;font-weight:800;line-height:1.15;margin:4px 0 2px;letter-spacing:-.5px}
+.hero-due{font-size:.8rem;opacity:.85}
+.hero .badge{margin-top:0}
+.hero .badge-unpaid{background:rgba(255,255,255,.22);color:#fff}
+.hero .badge-paid{background:rgba(255,255,255,.25);color:#fff}
+
+/* ---- 2×2 費用卡片 ---- */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.fcard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden}
+.fcard>summary{list-style:none;cursor:pointer;padding:18px 16px 14px;position:relative}
+.fcard>summary::-webkit-details-marker{display:none}
+.fc-amt{font-size:1.9rem;font-weight:800;color:var(--blue);line-height:1.1;letter-spacing:-.5px}
+.fc-cat{font-size:.95rem;font-weight:600;color:var(--ink);margin-top:6px}
+.fc-period{font-size:.72rem;color:var(--muted);margin-top:2px}
+.fc-more{position:absolute;top:14px;right:14px;font-size:.7rem;color:var(--muted)}
+.fcard[open] .fc-more{color:var(--blue)}
+.fc-detail{padding:0 16px 14px;font-size:.78rem;color:var(--muted);line-height:1.7;
+  border-top:1px dashed var(--line);margin-top:4px;padding-top:10px}
+.fc-detail b{color:var(--blue)}
+.fc-detail .note{color:var(--amber);margin-top:4px}
+
+/* ---- 結算期卡（房客）---- */
+.settle{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+  margin-bottom:14px;overflow:hidden}
+.settle>summary{list-style:none;cursor:pointer;padding:16px 18px}
+.settle>summary::-webkit-details-marker{display:none}
+.settle-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.settle-name{font-weight:700}
+.settle-due{font-size:.8rem;color:var(--muted)}
+.settle-amt{text-align:right;white-space:nowrap}
+.settle-amt .amt{font-size:1.3rem;font-weight:700;color:var(--blue);display:block}
+.settle-body{padding:0 18px 18px;border-top:1px solid var(--line)}
+
+.badge{display:inline-block;font-size:.72rem;padding:2px 9px;border-radius:20px;margin-top:4px}
+.badge-paid{background:var(--green-bg);color:var(--green)}
+.badge-unpaid{background:var(--amber-bg);color:var(--amber)}
+
+/* ---- 帳單表 ---- */
+.bill-table,.admin-table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:12px}
+.bill-table th,.admin-table th{text-align:left;color:var(--muted);font-weight:600;font-size:.78rem;
+  padding:6px 6px;border-bottom:1px solid var(--line)}
+.bill-table td,.admin-table td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.bill-table .period,.admin-table .period{color:var(--muted);font-size:.82rem}
+.bill-table tr.detail td{border-bottom:1px solid var(--line);color:var(--muted);font-size:.8rem;
+  background:#fafbfc;padding-top:4px}
+.note{color:var(--amber);font-size:.78rem;margin-top:3px}
+.total{color:var(--blue);font-weight:700}
+tfoot td{font-weight:600;padding-top:10px}
+
+/* ---- 繳費盒（房客）---- */
+.pay-box{margin-top:14px;background:#f7f9fc;border:1px solid var(--line);border-radius:12px;padding:14px}
+.pay-title{font-weight:700;margin-bottom:8px}
+.pay-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:.9rem}
+.pay-row span{color:var(--muted);width:42px;flex:none}
+.pay-hint{color:var(--muted);font-size:.78rem;margin-top:8px}
+.paid-line{margin-top:14px;color:var(--green);font-weight:600}
+
+/* ---- admin ---- */
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px}
+.settle-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tab{padding:7px 14px;border-radius:20px;background:#fff;border:1px solid var(--line);
+  text-decoration:none;color:var(--ink);font-size:.85rem;cursor:pointer;font-family:inherit}
+.tab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.tab.add{color:var(--blue);border-style:dashed}
+.admin-table{font-size:.82rem}
+.admin-table td,.admin-table th{padding:6px 5px}
+.pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+@media(max-width:560px){.pay-grid{grid-template-columns:1fr}}
+.pay-card{border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+.pay-card.is-paid{background:var(--green-bg);border-color:#bfe6cd}
+.pc-room{font-weight:700}
+.pc-amt{font-size:1.5rem;font-weight:700;color:var(--blue);margin:6px 0}
+.pc-status{font-size:.82rem;color:var(--muted);margin-bottom:10px}
+.preview{background:#f7f9fc;border:1px dashed var(--blue);border-radius:10px;padding:12px;
+  font-size:.85rem;color:var(--ink);margin:6px 0 12px;line-height:1.7}
+
+/* ---- modal ---- */
+.modal{position:fixed;inset:0;background:rgba(20,30,45,.45);display:grid;place-items:center;padding:20px;z-index:50}
+.modal[hidden]{display:none}
+.modal-card{background:#fff;border-radius:var(--radius);padding:22px;width:100%;max-width:360px;box-shadow:var(--shadow)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end}
+
+
+.role-tabs{display:flex;gap:8px;margin-bottom:14px;justify-content:center}
+.role-tabs .rt{padding:8px 16px;border-radius:20px;border:1px solid var(--line);background:#fff;cursor:pointer;font-family:inherit;font-size:.88rem}
+.role-tabs .rt.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+</style></head><body>
+
+<div class="wrap" style="padding-top:24px">
+  <div class="role-tabs">
+    <button class="rt on" data-v="tenant">房客視角（手機）</button>
+    <button class="rt" data-v="admin">Aries 後台</button>
+  </div>
+  <div style="max-width:420px;margin:0 auto">
+    <section id="v-tenant">
+    <div class="topbar" style="border-radius:14px;margin-bottom:14px">
+      <div class="topbar-in" style="padding:14px 18px">
+        <div><div class="t-title">我的費用</div><div class="t-sub">B 室 · 李新善</div></div>
+        <div><span class="link">修改密碼</span><span class="link">登出</span></div>
+      </div>
+    </div>
+    <div class="period-picker"><label>查詢期間</label><select><option>115年5–6月期</option></select></div>
+    <div class="hero">
+      <div class="hero-label">本期應繳合計 <span class="badge badge-unpaid">未繳</span></div>
+      <div class="hero-amt">NT$689</div>
+      <div class="hero-due">繳費期限 2026/7/1</div>
+    </div>
+    <div class="fgrid">
+      <details class="fcard"><summary><div class="fc-amt">NT$62</div><div class="fc-cat">電費</div><div class="fc-period">2026/3/16～2026/5/18</div><span class="fc-more">明細 ▾</span></summary><div class="fc-detail">分攤基礎 NT$662，總 64 天（前段 46 天 Aries 自付、後段 18 天均分）<br>後段 = 662 × (18 ÷ 64) = NT$186，每人 = 186 ÷ 3 = <b>NT$62</b></div></details>
+      <details class="fcard"><summary><div class="fc-amt">NT$89</div><div class="fc-cat">水費</div><div class="fc-period">2026/4/3～2026/6/2</div><span class="fc-more">明細 ▾</span></summary><div class="fc-detail">分攤基礎 NT$494，總 61 天（前段 28 天 Aries 自付、後段 33 天均分）<br>後段 = 494 × (33 ÷ 61) = NT$267，每人 = 267 ÷ 3 = <b>NT$89</b></div></details>
+      <details class="fcard"><summary><div class="fc-amt">NT$71</div><div class="fc-cat">天然氣</div><div class="fc-period">2026/4/10～2026/6/10</div><span class="fc-more">明細 ▾</span></summary><div class="fc-detail">分攤基礎 NT$324，總 62 天（前段 21 天 Aries 自付、後段 41 天均分）<br>後段 = 324 × (41 ÷ 62) = NT$214，每人 = 214 ÷ 3 = <b>NT$71</b><div class="note">※ 工料費 NT$2,800 為一次性檢修換料，Aries 全額自付、不列入分攤</div></div></details>
+      <details class="fcard"><summary><div class="fc-amt">NT$467</div><div class="fc-cat">網路</div><div class="fc-period">固定費（雙月）</div><span class="fc-more">明細 ▾</span></summary><div class="fc-detail">分攤基礎 NT$1,400 ÷ 3 人 = <b>NT$467</b></div></details>
+    </div>
+    <div class="pay-box">
+      <div class="pay-title">繳費方式（匯款）</div>
+      <div class="pay-row"><span>銀行</span><b>元大商業銀行 文德分行（代號 806）</b></div>
+      <div class="pay-row"><span>戶名</span><b>謝萬錤</b></div>
+      <div class="pay-row"><span>帳號</span><b>21232-0000-49668</b><button class="btn-copy">複製</button></div>
+      <div class="pay-row"><span>金額</span><b>NT$689</b><button class="btn-copy">複製</button></div>
+      <div class="pay-hint">匯款後由 Aries 確認到帳，狀態會更新為「已繳」。</div>
+    </div>
+</section>
+    <section id="v-admin" hidden>
+    <div class="topbar admin" style="border-radius:14px;margin-bottom:14px">
+      <div class="topbar-in" style="padding:14px 18px">
+        <div><div class="t-title">Aries 管理後台</div><div class="t-sub">內湖路一段 667 巷 7 號 5 樓</div></div>
+        <span class="link">登出</span>
+      </div>
+    </div>
+    <div class="settle-tabs"><span class="tab on">115年5–6月期</span><span class="tab add">＋ 新結算期</span></div>
+    <div class="card">
+      <h2>115年5–6月期 <span class="muted">繳費期限 2026/7/1</span></h2>
+      <table class="admin-table">
+        <thead><tr><th>項目</th><th>計費期間</th><th class="r">總額</th><th class="r">基礎</th><th class="r">A 室</th><th class="r">B 室</th><th class="r">Aries</th></tr></thead>
+        <tbody>
+          <tr><td><strong>電費</strong></td><td class="period">2026/3/16~2026/5/18<div class="muted sm">46+18 天</div></td><td class="r">662</td><td class="r">662</td><td class="r">62</td><td class="r">62</td><td class="r">538</td></tr>
+          <tr><td><strong>水費</strong></td><td class="period">2026/4/3~2026/6/2<div class="muted sm">28+33 天</div></td><td class="r">494</td><td class="r">494</td><td class="r">89</td><td class="r">89</td><td class="r">316</td></tr>
+          <tr><td><strong>天然氣</strong><div class="note">※ 工料費 2,800 Aries 自付</div></td><td class="period">2026/4/10~2026/6/10<div class="muted sm">21+41 天</div></td><td class="r">3,124</td><td class="r">324</td><td class="r">71</td><td class="r">71</td><td class="r">2,982</td></tr>
+          <tr><td><strong>網路</strong></td><td class="period">固定（雙月）</td><td class="r">1,400</td><td class="r">1,400</td><td class="r">467</td><td class="r">467</td><td class="r">466</td></tr>
+        </tbody>
+        <tfoot><tr><td colspan="4">每位房客本期應繳</td><td class="r total">689</td><td class="r total">689</td><td></td></tr></tfoot>
+      </table>
+      <h3>繳費狀態</h3>
+      <div class="pay-grid">
+        <div class="pay-card"><div class="pc-room">A 室 · 侯太偉</div><div class="pc-amt">NT$689</div><div class="pc-status">未繳</div><button class="btn btn-primary btn-block">標記已繳</button></div>
+        <div class="pay-card is-paid"><div class="pc-room">B 室 · 李新善</div><div class="pc-amt">NT$689</div><div class="pc-status">已繳 · 2026/7/3</div><button class="btn btn-block">改為未繳</button></div>
+      </div>
+    </div>
+</section>
+  </div>
+  <p class="hint" style="margin-top:24px">靜態示意畫面；日期已改西元年，角色標示為 Aries。</p>
+</div>
+<script>
+  document.querySelectorAll('.rt').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.rt').forEach(function(x){x.classList.remove('on')});
+      b.classList.add('on');var v=b.getAttribute('data-v');
+      document.getElementById('v-tenant').hidden=(v!=='tenant');
+      document.getElementById('v-admin').hidden=(v!=='admin');
+    });
+  });
+</script>
+</body></html>
