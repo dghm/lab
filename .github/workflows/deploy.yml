@@ -1,9 +1,11 @@
-name: Deploy to Bluehost
+name: Deploy myinvestment to Bluehost
 
 on:
   push:
     branches:
-      - claude/modest-sagan-avpfix
+      - claude/amazing-davinci-d0wypy
+    paths:
+      - 'myinvestment/**'
 
 jobs:
   ftp-deploy:
@@ -22,9 +24,9 @@ jobs:
           protocol: ftps
           port: 21
           server-dir: ./
-          local-dir: ./
+          local-dir: ./myinvestment/
           exclude: |
             **/.git*
             **/.git*/**
             **/.github/**
-            config.php
+            myinvestment/config.php
