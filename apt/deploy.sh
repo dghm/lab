@@ -12,7 +12,7 @@
 # 安全性說明：
 #   - 此腳本只「上傳」（mirror --reverse），不會刪除遠端多出的檔案。
 #   - 不會覆蓋 config.php（線上密碼設定）、uploads/（房客上傳的帳單附件）、
-#     以及本機開發用文件（CLAUDE.md / DEPLOY-SOP.md / HANDOFF.md / error_log / files*）。
+#     以及本機開發用文件（CLAUDE.md / DEPLOY-SOP.md / HANDOFF.md / MOVE-PLAN.md / error_log / files*）。
 #   - 若要更新 config.php 或 schema.sql，請手動透過 cPanel File Manager / phpMyAdmin 處理，
 #     避免誤蓋線上資料庫密碼或結構。
 
@@ -58,6 +58,7 @@ mirror --reverse --verbose $DRYRUN \
   --exclude-glob CLAUDE.md \
   --exclude-glob DEPLOY-SOP.md \
   --exclude-glob HANDOFF.md \
+  --exclude-glob MOVE-PLAN.md \
   --exclude-glob error_log \
   --exclude-glob files/ \
   --exclude-glob files.zip \

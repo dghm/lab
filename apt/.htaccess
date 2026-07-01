@@ -1,20 +1,44 @@
+# 解除繼承自 lab.dghm.tw 根目錄的 Directory Privacy 密碼鎖，讓房客可公開存取 apt
+# （方案 A；依賴 mod_access_compat）。此片段會放寬整個目錄的存取控制，敏感檔的 403
+# 保護改由下方「禁止外部存取」區塊以 Satisfy All + Deny from all 重新強制（見下）。
+Satisfy Any
+Allow from all
+
 # 強制 HTTPS
+# 用 %{REQUEST_URI}（絕對路徑，含 /apt/ 前綴），避免 .htaccess 位於子目錄時
+# 相對的 $1 漏掉 /apt/ 而把使用者轉到網站根目錄。
 RewriteEngine On
 RewriteCond %{HTTPS} off
-RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
 # 禁止外部存取設定檔與 SQL
+# 注意：上方 Satisfy Any/Allow from all 會放寬整個目錄的存取控制，會「連帶廢掉」
+# 純 Require all denied 的保護（實測 config.php 會變 200）。因此每個敏感區塊都加
+# mod_access_compat 的 Order/Deny + Satisfy All，強制「host 與 auth 都必須通過」，
+# 讓這些檔不被解鎖片段連帶放行，一律回 403。
 <FilesMatch "\.(sql)$">
   Require all denied
+  Order allow,deny
+  Deny from all
+  Satisfy All
 </FilesMatch>
 <Files "config.php">
   Require all denied
+  Order allow,deny
+  Deny from all
+  Satisfy All
 </Files>
 <Files "db.php">
   Require all denied
+  Order allow,deny
+  Deny from all
+  Satisfy All
 </Files>
 <Files "functions.php">
   Require all denied
+  Order allow,deny
+  Deny from all
+  Satisfy All
 </Files>
 
 # 基本安全標頭

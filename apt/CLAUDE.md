@@ -5,7 +5,7 @@
 台北內湖「667 公寓」的水電瓦斯網路費用分攤 + 繳費追蹤系統。
 房客登入各看各的應繳金額與明細，管理者（Aries）輸入帳單、系統自動計算分攤、標記已繳/未繳。
 
-- 已上線：https://dghm.tw/apt/（Bluehost 共享主機）
+- 已上線：https://lab.dghm.tw/apt/（Bluehost 共享主機，lab 子網域；2026-06-30 由 dghm.tw/apt 遷入）
 - 技術：原生 PHP 8 + MySQL，無框架、無 composer 依賴
 - 本資料夾＝部署母版；**線上檔案在 Bluehost `public_html/apt/`，改完要手動上傳覆蓋**
 
@@ -29,7 +29,7 @@ db.php                   PDO 連線 + 安全 session
 functions.php            認證 / CSRF / 分攤計算（業務邏輯全集中在此）
 config.php               DB 帳密 + SPLIT_START + 收款資訊（已被 .htaccess 鎖）
 schema.sql               四表：users / settlements / bills / payments
-.htaccess                強制 HTTPS + 鎖 config/db/functions/*.sql
+.htaccess                強制 HTTPS + 鎖 config/db/functions/*.sql + 解除 lab 子網域繼承的密碼鎖（方案 A）
 assets/style.css         樣式（含手機卡片、hero、timeline 元件）
 assets/app.js            複製按鈕、modal、admin 即時試算（公式須與 PHP 同步）
 assets/logo.png          登入頁圓形 logo
@@ -41,7 +41,7 @@ assets/thankyou.png      已繳時 hero 右側貼圖（透明背景）
 - DB：`zjqafhmy_667_no7`，使用者 `zjqafhmy_667user`（密碼見線上 config.php，**勿寫進本檔或 git**）
 - 帳號：`admin`（Aries）／`David`（A 室 侯太偉）／`Zeb`（B 室 李新善）
 - 密碼以 bcrypt 雜湊存於 users 表；手動改密需先算雜湊再 UPDATE，禁明文
-- 部署：cPanel File Manager 上傳；掛 Cloudflare（改版後清快取、SSL=Full）
+- 部署：本機跑 deploy.sh（lftp mirror，只上傳不刪遠端）；lab.dghm.tw 走 cPanel AutoSSL（非 Cloudflare）
 
 ## 開發守則
 

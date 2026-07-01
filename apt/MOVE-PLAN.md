@@ -1,5 +1,10 @@
 # MOVE-PLAN — 將 apt 部署位置遷移至 lab.dghm.tw/apt/
 
+> **已完成：2026-06-30**。方案 A 遷移成功，新站 https://lab.dghm.tw/apt/ 上線並通過驗收
+> （解鎖 200、config/db/functions/*.sql 皆 403、HTTPS 保留 /apt/、房客附件可讀、admin 試算正常）。
+> 遷移後續記錄見 `HANDOFF.md` 的「目前現況（2026-06-30 遷移後）」。
+> 剩 Aries 手動收尾：關閉舊站 `/website_6b29b600/apt`、移除 `T 室 測試帳號`。本檔保留作歷程參考。
+>
 > 建立：2026-06-29
 > 對象：在新 session 接手 apt 部署遷移的開發者 / AI Agent。
 > **先讀 `CLAUDE.md` 與 `HANDOFF.md`**，本檔只記錄「這次的搬遷計畫與決定」，不重複專案全貌。
