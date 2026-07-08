@@ -12,7 +12,7 @@
 </head>
 <body>
 <header>
-    <h1>我的資產配置</h1>
+    <h1>個人投資 Dashboard</h1>
     <div class="head-actions">
         <span id="asOf" class="muted"></span>
         <button id="refreshBtn">↻ 重新抓價</button>
