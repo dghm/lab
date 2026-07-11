@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+
+export const dynamic = "force-dynamic";
 import bcrypt from "bcryptjs";
 import { findEmployeeByEmail } from "@/lib/airtable";
 import { createSession } from "@/lib/session";

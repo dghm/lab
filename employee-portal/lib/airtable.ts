@@ -1,8 +1,10 @@
 import Airtable from "airtable";
 
-const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(
-  process.env.AIRTABLE_BASE_ID!
-);
+function getBase() {
+  return new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base(
+    process.env.AIRTABLE_BASE_ID!
+  );
+}
 
 export type Employee = {
   id: string;
@@ -14,6 +16,7 @@ export type Employee = {
 };
 
 export async function findEmployeeByEmail(email: string): Promise<Employee | null> {
+  const base = getBase();
   const records = await base("Employees")
     .select({
       filterByFormula: `LOWER({Email}) = LOWER("${email.replace(/"/g, '\\"')}")`,
@@ -35,6 +38,7 @@ export async function findEmployeeByEmail(email: string): Promise<Employee | nul
 }
 
 export async function listAnnouncements() {
+  const base = getBase();
   const records = await base("Announcements")
     .select({ sort: [{ field: "PostedDate", direction: "desc" }] })
     .firstPage();
