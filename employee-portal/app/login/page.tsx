@@ -48,7 +48,7 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
+          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-400"
           placeholder="name@company.com"
         />
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500"
+          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-400"
           placeholder="••••••••"
         />
 
