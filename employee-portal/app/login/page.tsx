@@ -15,21 +15,27 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "登入失敗");
-      return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? `登入失敗（${res.status}）`);
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch (err) {
+      setLoading(false);
+      setError("網路錯誤，請稍後再試");
+      console.error(err);
     }
-
-    router.push("/dashboard");
   }
 
   return (
@@ -48,7 +54,7 @@ export default function LoginPage() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-400"
+          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500 placeholder:text-gray-400"
           placeholder="name@company.com"
         />
 
@@ -58,7 +64,7 @@ export default function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 outline-none focus:border-blue-500 placeholder:text-gray-400"
+          className="mb-4 w-full rounded border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-blue-500 placeholder:text-gray-400"
           placeholder="••••••••"
         />
 
