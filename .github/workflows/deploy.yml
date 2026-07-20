@@ -5,28 +5,100 @@ on:
     branches:
       - main
     paths:
-      - 'myinvestment/**'
+      - "myinvestment/**"
+
+concurrency:
+  group: deploy-myinvestment-bluehost
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
-  ftp-deploy:
-    name: FTP Deploy
+  deploy:
+    name: SSH/rsync deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy via FTPS
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_HOST }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          server-dir: ./
-          local-dir: ./myinvestment/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/.github/**
-            myinvestment/config.php
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BLUEHOST_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BLUEHOST_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment settings
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_MYINVESTMENT_PATH }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_PORT"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PATH"
+          case "$DEPLOY_PATH" in
+            */myinvestment|*/myinvestment/) ;;
+            *) echo "Deployment path must end with /myinvestment" >&2; exit 1 ;;
+          esac
+
+      - name: Validate remote configuration
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_MYINVESTMENT_PATH }}
+        run: |
+          set -eu
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p -- '$DEPLOY_PATH' && test -f '$DEPLOY_PATH/config.php'"
+
+      - name: Deploy project files
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_MYINVESTMENT_PATH }}
+        run: |
+          set -eu
+          RSYNC_SSH="ssh -p $DEPLOY_PORT"
+          rsync -az --checksum --itemize-changes \
+            --exclude='/config.php' \
+            --exclude='/.git*' \
+            --exclude='/.github/' \
+            --exclude='.DS_Store' \
+            -e "$RSYNC_SSH" \
+            myinvestment/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Verify deployment
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_MYINVESTMENT_PATH }}
+          DEPLOY_URL: https://lab.dghm.tw/myinvestment/
+        run: |
+          set -eu
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "test -f '$DEPLOY_PATH/config.php'"
+          status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "$DEPLOY_URL")
+          case "$status" in
+            200) echo "myinvestment is reachable." ;;
+            401) echo "myinvestment is reachable and password protected." ;;
+            *) echo "myinvestment returned HTTP $status" >&2; exit 1 ;;
+          esac
