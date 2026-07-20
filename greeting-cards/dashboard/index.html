@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f1ea">
+  <meta name="robots" content="noindex, nofollow">
+  <title>DGHM 電子賀卡 Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="DGHM 電子賀卡 Dashboard 首頁">
+      <span class="brand-mark">DGHM</span>
+      <span class="brand-name">電子賀卡平台</span>
+    </a>
+    <span class="environment-label">內部管理</span>
+  </header>
+
+  <main>
+    <section class="page-heading" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">Greeting Cards</p>
+        <h1 id="page-title">賀卡管理</h1>
+        <p class="intro">管理不同年度與節慶賀卡，確認狀態、網址與預覽入口。</p>
+      </div>
+      <div class="summary" aria-label="賀卡統計">
+        <div>
+          <strong id="card-count">—</strong>
+          <span>全部賀卡</span>
+        </div>
+        <div>
+          <strong id="published-count">—</strong>
+          <span>已發布</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog" aria-labelledby="catalog-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-label">Card catalog</p>
+          <h2 id="catalog-title">賀卡清單</h2>
+        </div>
+        <p id="catalog-status" class="catalog-status" role="status">正在讀取賀卡資料…</p>
+      </div>
+
+      <div id="card-list" class="card-list" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>萬能數維有限公司</span>
+    <span>DGHM Greeting Cards</span>
+  </footer>
+
+  <template id="card-template">
+    <article class="card-item">
+      <div class="card-topline">
+        <span class="status-badge"></span>
+        <span class="card-id"></span>
+      </div>
+      <div class="card-content">
+        <p class="festival-label"></p>
+        <h3 class="card-title"></h3>
+        <p class="card-message"></p>
+      </div>
+      <dl class="card-meta">
+        <div>
+          <dt>正式路徑</dt>
+          <dd class="canonical-path"></dd>
+        </div>
+        <div>
+          <dt>短碼</dt>
+          <dd class="short-code"></dd>
+        </div>
+      </dl>
+      <div class="card-actions">
+        <a class="primary-action card-link">開啟賀卡</a>
+        <span class="publish-note"></span>
+      </div>
+    </article>
+  </template>
+
+  <script src="dashboard.js" defer></script>
+</body>
+</html>
