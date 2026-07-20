@@ -121,6 +121,7 @@ legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
 .data-table.mini th, .data-table.mini td { padding: 6px 10px; font-size: 13px; }
 .txn-form { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
 .txn-form .row label { flex: 1; }
+.txn-form .primary-inputs input { font-size: 16px; font-weight: 600; padding-block: 10px; }
 
 textarea { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line);
     border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; resize: vertical; }
