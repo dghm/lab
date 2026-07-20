@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000317">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>中秋賀卡 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Intel+One+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+Mono+TC:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      background-color: #000317;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #04070f;
+      padding: 24px;
+    }
+
+    .card {
+      --w: 1071;
+      --h: 506;
+      --bg-gradient: radial-gradient(263.72% 94.64% at 16.44% 38.33%, #2A5478 0%, #000317 100%);
+      position: relative;
+      width: min(100%, 1071px);
+      aspect-ratio: 1071 / 506;
+      overflow: hidden;
+      container-type: inline-size;
+    }
+
+    .card img,
+    .layer {
+      position: absolute;
+      display: block;
+      height: auto;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    .layer img {
+      position: static;
+      width: 100%;
+    }
+
+    /* ── 動畫 keyframes ── */
+    @keyframes bgIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes moonIn {
+      from { opacity: 0; transform: translateX(-10%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInFromLeft {
+      from { opacity: 0; transform: translateX(-14%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInFromRight {
+      from { opacity: 0; transform: translateX(14%); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes cloudSway {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(8px); }
+    }
+
+    @keyframes starPulse {
+      0%, 100% {
+        transform: scale(0.72);
+        opacity: 0.55;
+        filter: brightness(0.75);
+      }
+      50% {
+        transform: scale(1.18);
+        opacity: 1;
+        filter: brightness(1.35);
+      }
+    }
+
+    @keyframes titleZhIn {
+      from { opacity: 0; filter: blur(18px); transform: scale(0.92); }
+      to { opacity: 1; filter: blur(0); transform: scale(1); }
+    }
+
+    @keyframes slideDownIn {
+      from { opacity: 0; transform: translateY(-18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes charInFromRight {
+      from { opacity: 0; transform: translateX(14px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideUpIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes meteorStreak {
+      0%, 88%, 100% {
+        opacity: 0;
+        transform: translate(0, 0) rotate(var(--angle));
+      }
+      2% { opacity: 0.9; }
+      10% {
+        opacity: 0;
+        transform: translate(var(--dx), var(--dy)) rotate(var(--angle));
+      }
+    }
+
+    /* ── 流星（畫面右上 1/4 區塊，主動畫結束後才出現） ── */
+    .meteors {
+      --meteor-start: 12s;
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 50%;
+      height: 50%;
+      z-index: 5;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .meteor {
+      position: absolute;
+      width: clamp(48px, 8cqi, 110px);
+      height: 2px;
+      border-radius: 999px;
+      transform-origin: right center;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 236, 200, 0.1) 35%,
+        rgba(255, 248, 235, 0.9) 100%
+      );
+      filter: drop-shadow(0 0 4px rgba(255, 228, 180, 0.65));
+      opacity: 0;
+      animation: meteorStreak var(--cycle) ease-in var(--delay) infinite;
+    }
+
+    .meteor::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: 50%;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      background: #fffaf0;
+      box-shadow: 0 0 6px 2px rgba(255, 236, 200, 0.85);
+    }
+
+    .meteor--1 {
+      --angle: 142deg;
+      --dx: -20cqi;
+      --dy: 17cqi;
+      --cycle: 9s;
+      --delay: var(--meteor-start);
+      left: 14%;
+      top: 10%;
+      width: clamp(56px, 9cqi, 118px);
+    }
+
+    .meteor--2 {
+      --angle: 146deg;
+      --dx: -18cqi;
+      --dy: 15cqi;
+      --cycle: 9s;
+      --delay: calc(var(--meteor-start) + 3s);
+      left: 52%;
+      top: 28%;
+      height: 1.5px;
+      width: clamp(44px, 7cqi, 92px);
+    }
+
+    .meteor--3 {
+      --angle: 139deg;
+      --dx: -22cqi;
+      --dy: 18cqi;
+      --cycle: 9s;
+      --delay: calc(var(--meteor-start) + 6s);
+      left: 72%;
+      top: 6%;
+      width: clamp(40px, 6cqi, 84px);
+    }
+
+    /* ── 初始隱藏 ── */
+    .moon,
+    .cloud-mb-db,
+    .cloud-mb-db-1,
+    .cloud-lb,
+    .cloud-lb-1,
+    .cloud-w,
+    .cloud-w-1,
+    .star-1,
+    .star,
+    .star-2,
+    .title-zh,
+    .title-en,
+    .greeting .char,
+    .signature-company,
+    .signature-suffix {
+      opacity: 0;
+    }
+
+    /* ── 1. 背景 ── */
+    .bg {
+      position: absolute;
+      inset: 0;
+      background: var(--bg-gradient);
+      animation: bgIn 0.8s ease forwards;
+    }
+
+    /* ── 2. 月亮 ── */
+    .moon {
+      left: calc(0 / var(--w) * 100%);
+      top: calc(0 / var(--h) * 100%);
+      width: calc(406 / var(--w) * 100%);
+      z-index: 4;
+      filter:
+        drop-shadow(0 0 8px rgba(255, 248, 225, 0.85))
+        drop-shadow(0 0 22px rgba(255, 232, 190, 0.55))
+        drop-shadow(0 0 44px rgba(255, 215, 160, 0.32))
+        drop-shadow(0 0 72px rgba(255, 200, 130, 0.18));
+      animation: moonIn 1s ease 0.7s forwards;
+    }
+
+    /* ── 3. 左下 / 右下雲層（bottom 貼齊卡片底緣） ── */
+    .cloud-mb-db {
+      left: calc(0 / var(--w) * 100%);
+      bottom: 0;
+      width: calc(462 / var(--w) * 100%);
+      z-index: 3;
+      animation: slideInFromLeft 0.9s ease 1.6s forwards;
+    }
+
+    .cloud-lb {
+      left: calc(-2 / var(--w) * 100%);
+      bottom: 0;
+      width: calc(401 / var(--w) * 100%);
+      z-index: 4;
+      animation: slideInFromLeft 0.9s ease 1.7s forwards;
+    }
+
+    .cloud-mb-db-1 {
+      left: calc(641 / var(--w) * 100%);
+      bottom: 0;
+      width: calc(430 / var(--w) * 100%);
+      z-index: 3;
+      animation: slideInFromRight 0.9s ease 1.8s forwards;
+    }
+
+    .cloud-lb-1 {
+      left: calc(566 / var(--w) * 100%);
+      bottom: 0;
+      width: calc(506 / var(--w) * 100%);
+      z-index: 5;
+      animation: slideInFromRight 0.9s ease 1.9s forwards;
+    }
+
+    /* ── 4. 祥雲（淡入 + 持續擺動） ── */
+    .cloud-w-1-wrap {
+      left: calc(143 / var(--w) * 100%);
+      top: calc(78 / var(--h) * 100%);
+      width: calc(340 / var(--w) * 100%);
+      z-index: 4;
+      animation: cloudSway 3.6s ease-in-out 3.3s infinite;
+    }
+
+    .cloud-w-1 {
+      animation: fadeIn 0.7s ease 2.6s forwards;
+    }
+
+    .cloud-w-wrap {
+      left: calc(-10 / var(--w) * 100%);
+      top: calc(214 / var(--h) * 100%);
+      width: calc(340 / var(--w) * 100%);
+      z-index: 8;
+      animation: cloudSway 4s ease-in-out 3.8s infinite;
+    }
+
+    .cloud-w {
+      animation: fadeIn 0.7s ease 3.1s forwards;
+    }
+
+    /* ── 5. 星星（依序淡入 → 持續脈動） ── */
+    .star-1-wrap {
+      left: calc(355 / var(--w) * 100%);
+      top: calc(230 / var(--h) * 100%);
+      width: calc(44 / var(--w) * 100%);
+      z-index: 7;
+      animation: starPulse 1.6s ease-in-out 5.1s infinite;
+    }
+
+    .star-1 {
+      animation: fadeIn 0.5s ease 3.8s forwards;
+    }
+
+    .star-wrap {
+      left: calc(472 / var(--w) * 100%);
+      top: calc(48 / var(--h) * 100%);
+      width: calc(24 / var(--w) * 100%);
+      z-index: 7;
+      animation: starPulse 2s ease-in-out 5.3s infinite;
+    }
+
+    .star {
+      animation: fadeIn 0.5s ease 4.2s forwards;
+    }
+
+    .star-2-wrap {
+      left: calc(686 / var(--w) * 100%);
+      top: calc(305 / var(--h) * 100%);
+      width: calc(34 / var(--w) * 100%);
+      z-index: 7;
+      animation: starPulse 1.4s ease-in-out 5.5s infinite;
+    }
+
+    .star-2 {
+      animation: fadeIn 0.5s ease 4.6s forwards;
+    }
+
+    /* ── 6. 中秋標題 ── */
+    .title-zh {
+      left: calc(470 / var(--w) * 100%);
+      top: calc(132 / var(--h) * 100%);
+      width: calc(110 / var(--w) * 100%);
+      z-index: 6;
+      animation: titleZhIn 1s ease 5s forwards;
+    }
+
+    /* ── 7. 右側文字區 ── */
+    .title-en {
+      position: absolute;
+      left: calc(604 / var(--w) * 100%);
+      top: calc(176 / var(--h) * 100%);
+      z-index: 6;
+      margin: 0;
+      font-family: 'Intel One Mono', monospace;
+      font-weight: 300;
+      font-size: 1.2cqi;
+      line-height: 1;
+      letter-spacing:0.15cqi;
+      text-transform: uppercase;
+      color: rgba(235, 212, 178, 0.3);
+      white-space: nowrap;
+      animation: slideDownIn 0.7s ease 6.1s forwards;
+    }
+
+    .greeting {
+      position: absolute;
+      left: calc(601 / var(--w) * 100%);
+      top: calc(196 / var(--h) * 100%);
+      width: calc(380 / var(--w) * 100%);
+      z-index: 6;
+      font-family: 'LXGW WenKai Mono TC', monospace;
+      font-weight: 300;
+      font-size: 2.55cqi;
+      line-height: 1.65;
+      color: #e8dcc8;
+      letter-spacing: 0.04em;
+    }
+
+    .greeting .char {
+      display: inline-block;
+      animation: charInFromRight 0.45s ease forwards;
+      animation-delay: calc(6.9s + var(--i) * 0.12s);
+    }
+
+    .signature-company {
+      left: calc(780 / var(--w) * 100%);
+      top: calc(300 / var(--h) * 100%);
+      width: calc(157 / var(--w) * 100%);
+      z-index: 6;
+      animation: slideUpIn 0.7s ease 10.4s forwards;
+    }
+
+    .signature-suffix {
+      left: calc(950 / var(--w) * 100%);
+      top: calc(300 / var(--h) * 100%);
+      width: calc(41 / var(--w) * 100%);
+      z-index: 6;
+      animation: slideInFromRight 0.6s ease 11s forwards;
+    }
+
+    /* ── 重播按鈕 ── */
+    .replay-btn {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      z-index: 20;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(235, 212, 178, 0.28);
+      border-radius: 50%;
+      background: rgba(0, 3, 23, 0.45);
+      color: rgba(235, 212, 178, 0.85);
+      cursor: pointer;
+      pointer-events: auto;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      transform: scale(0.92);
+      animation: fadeIn 0.5s ease 11.2s forwards;
+      transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+    }
+
+    .replay-btn:hover,
+    .replay-btn:focus-visible {
+      color: #fff8e8;
+      border-color: rgba(255, 236, 200, 0.55);
+      background: rgba(42, 84, 120, 0.45);
+      transform: scale(1);
+      outline: none;
+    }
+
+    .replay-btn:active {
+      transform: scale(0.94);
+    }
+
+    .replay-btn svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .card.is-replaying *,
+    .card.is-replaying *::before,
+    .card.is-replaying *::after {
+      animation: none !important;
+    }
+
+    .card.is-replaying .replay-btn {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* ── 手機直式：上月下文 ── */
+    @media (max-width: 768px) and (orientation: portrait) {
+      body {
+        padding: 0;
+        align-items: stretch;
+      }
+
+      .card {
+        --w: 390;
+        --h: 780;
+        --bg-gradient: radial-gradient(125% 72% at 50% 14%, #2A5478 0%, #000317 100%);
+        width: 100%;
+        max-width: none;
+        height: 100dvh;
+        max-height: 100dvh;
+        aspect-ratio: auto;
+      }
+
+      .moon {
+        left: calc(-8 / var(--w) * 100%);
+        top: calc(0 / var(--h) * 100%);
+        width: calc(226 / var(--w) * 100%);
+      }
+
+      .cloud-mb-db {
+        left: calc(-24 / var(--w) * 100%);
+        bottom: 0;
+        width: calc(248 / var(--w) * 100%);
+      }
+
+      .cloud-lb {
+        left: calc(-8 / var(--w) * 100%);
+        bottom: 0;
+        width: calc(218 / var(--w) * 100%);
+      }
+
+      .cloud-mb-db-1 {
+        left: calc(178 / var(--w) * 100%);
+        bottom: 0;
+        width: calc(228 / var(--w) * 100%);
+      }
+
+      .cloud-lb-1 {
+        left: calc(148 / var(--w) * 100%);
+        bottom: 0;
+        width: calc(258 / var(--w) * 100%);
+      }
+
+      .cloud-w-1-wrap {
+        left: calc(128 / var(--w) * 100%);
+        top: calc(52 / var(--h) * 100%);
+        width: calc(186 / var(--w) * 100%);
+      }
+
+      .cloud-w-wrap {
+        left: calc(-10 / var(--w) * 100%);
+        top: calc(168 / var(--h) * 100%);
+        width: calc(186 / var(--w) * 100%);
+      }
+
+      .star-1-wrap {
+        left: calc(68 / var(--w) * 100%);
+        top: calc(308 / var(--h) * 100%);
+        width: calc(40 / var(--w) * 100%);
+      }
+
+      .star-wrap {
+        left: calc(278 / var(--w) * 100%);
+        top: calc(148 / var(--h) * 100%);
+        width: calc(22 / var(--w) * 100%);
+      }
+
+      .star-2-wrap {
+        left: calc(308 / var(--w) * 100%);
+        top: calc(343 / var(--h) * 100%);
+        width: calc(30 / var(--w) * 100%);
+      }
+
+      .title-zh {
+        left: calc(155 / var(--w) * 100%);
+        top: calc(166 / var(--h) * 100%);
+        width: calc(80 / var(--w) * 100%);
+      }
+
+      .title-en {
+        left: calc(87 / var(--w) * 100%);
+        top: calc(403 / var(--h) * 100%);
+        font-size: 3cqi;
+        letter-spacing: 0.15em;
+      }
+
+      .greeting {
+        left: calc(28 / var(--w) * 100%);
+        top: calc(422 / var(--h) * 100%);
+        width: calc(334 / var(--w) * 100%);
+        font-size: 6.2cqi;
+        line-height: 1.72;
+        text-align: center;
+      }
+
+      .signature-company {
+        left: calc(126 / var(--w) * 100%);
+        top: calc(526 / var(--h) * 100%);
+        width: calc(140 / var(--w) * 100%);
+      }
+
+      .signature-suffix {
+        left: calc(258 / var(--w) * 100%);
+        top: calc(557 / var(--h) * 100%);
+        width: calc(35 / var(--w) * 100%);
+      }
+
+      .replay-btn {
+        right: max(14px, env(safe-area-inset-right));
+        bottom: max(18px, env(safe-area-inset-bottom));
+        width: 44px;
+        height: 44px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card" aria-label="中秋賀卡：感謝這段時間的信任與合作，願您闔家平安、月圓事圓。萬能數維有限公司敬賀">
+    <div class="bg" aria-hidden="true"></div>
+
+    <div class="meteors" aria-hidden="true">
+      <span class="meteor meteor--1"></span>
+      <span class="meteor meteor--2"></span>
+      <span class="meteor meteor--3"></span>
+    </div>
+
+    <img class="moon" src="moon.svg" alt="">
+
+    <img class="cloud-mb-db" src="cloud-mid-dark-left.svg" alt="">
+    <img class="cloud-lb" src="cloud-lower-left.svg" alt="">
+    <img class="cloud-mb-db-1" src="cloud-mid-dark-right.svg" alt="">
+    <img class="cloud-lb-1" src="cloud-lower-right.svg" alt="">
+
+    <div class="layer cloud-w-1-wrap">
+      <img class="cloud-w-1" src="cloud-white-right.svg" alt="">
+    </div>
+    <div class="layer cloud-w-wrap">
+      <img class="cloud-w" src="cloud-white-left.svg" alt="">
+    </div>
+
+    <div class="layer star-1-wrap">
+      <img class="star-1" src="star-left.svg" alt="">
+    </div>
+    <div class="layer star-wrap">
+      <img class="star" src="star-top.svg" alt="">
+    </div>
+    <div class="layer star-2-wrap">
+      <img class="star-2" src="star-right.svg" alt="">
+    </div>
+
+    <img class="title-zh" src="title-mid-autumn.svg" alt="中秋">
+    <p class="title-en">Happy Mid Autumn Festival</p>
+
+    <div class="greeting" aria-label="感謝這段時間的信任與合作  願您闔家平安、月圓事圓">
+      <p>
+        <span class="char" style="--i:0">感</span><span class="char" style="--i:1">謝</span><span class="char" style="--i:2">這</span><span class="char" style="--i:3">段</span><span class="char" style="--i:4">時</span><span class="char" style="--i:5">間</span><span class="char" style="--i:6">的</span><span class="char" style="--i:7">信</span><span class="char" style="--i:8">任</span><span class="char" style="--i:9">與</span><span class="char" style="--i:10">合</span><span class="char" style="--i:11">作</span> 
+      </p>
+      <p>
+        <span class="char" style="--i:13">願</span><span class="char" style="--i:14">您</span><span class="char" style="--i:15">闔</span><span class="char" style="--i:16">家</span><span class="char" style="--i:17">平</span><span class="char" style="--i:18">安</span><span class="char" style="--i:19">、</span><span class="char" style="--i:20">月</span><span class="char" style="--i:21">圓</span><span class="char" style="--i:22">事</span><span class="char" style="--i:23">圓</span>
+      </p>
+    </div>
+
+    <img class="signature-company" src="signature-company.svg" alt="萬能數維有限公司">
+    <img class="signature-suffix" src="signature-suffix.svg" alt="敬賀">
+
+    <button type="button" class="replay-btn" aria-label="重新播放動畫" title="重新播放">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4.5 12a7.5 7.5 0 0 1 12.7-5.4L19 8.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19 4.5V8.5H15" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M19.5 12a7.5 7.5 0 0 1-12.7 5.4L5 15.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 19.5V15.5H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    (function () {
+      var card = document.querySelector('.card');
+      var btn = document.querySelector('.replay-btn');
+      if (!card || !btn) return;
+
+      btn.addEventListener('click', function () {
+        card.classList.add('is-replaying');
+        void card.offsetWidth;
+        card.classList.remove('is-replaying');
+      });
+    })();
+  </script>
+</body>
+</html>
