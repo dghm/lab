@@ -22,31 +22,61 @@
       <div>
         <p class="eyebrow">Greeting Cards</p>
         <h1 id="page-title">賀卡管理</h1>
-        <p class="intro">管理不同年度與節慶賀卡，確認狀態、網址與預覽入口。</p>
+        <p class="intro">從左側選擇賀卡，在右側確認桌機與手機呈現效果。</p>
       </div>
       <div class="summary" aria-label="賀卡統計">
-        <div>
-          <strong id="card-count">—</strong>
-          <span>全部賀卡</span>
-        </div>
-        <div>
-          <strong id="published-count">—</strong>
-          <span>已發布</span>
-        </div>
+        <div><strong id="card-count">—</strong><span>全部賀卡</span></div>
+        <div><strong id="published-count">—</strong><span>已發布</span></div>
       </div>
     </section>
 
-    <section class="catalog" aria-labelledby="catalog-title">
-      <div class="section-heading">
-        <div>
-          <p class="section-label">Card catalog</p>
-          <h2 id="catalog-title">賀卡清單</h2>
+    <div class="workspace">
+      <section class="catalog-panel" aria-labelledby="catalog-title">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Card catalog</p>
+            <h2 id="catalog-title">賀卡清單</h2>
+          </div>
+          <p id="catalog-status" class="catalog-status" role="status">正在讀取…</p>
         </div>
-        <p id="catalog-status" class="catalog-status" role="status">正在讀取賀卡資料…</p>
-      </div>
+        <div id="card-list" class="card-list" aria-live="polite"></div>
+      </section>
 
-      <div id="card-list" class="card-list" aria-live="polite"></div>
-    </section>
+      <section class="preview-panel" aria-labelledby="preview-title">
+        <div class="preview-heading">
+          <div>
+            <p class="section-label">Live preview</p>
+            <h2 id="preview-title">選擇一張賀卡</h2>
+          </div>
+          <div class="device-switch" aria-label="預覽裝置">
+            <button type="button" class="device-button is-active" data-device="desktop" aria-pressed="true">桌機</button>
+            <button type="button" class="device-button" data-device="mobile" aria-pressed="false">手機</button>
+          </div>
+        </div>
+
+        <div id="preview-stage" class="preview-stage is-empty">
+          <div class="preview-placeholder">
+            <strong>尚未選擇賀卡</strong>
+            <span>從左側清單選擇一張賀卡開始預覽。</span>
+          </div>
+          <div class="device-frame" hidden>
+            <div class="device-browser-bar" aria-hidden="true">
+              <i></i><i></i><i></i>
+              <span id="preview-address"></span>
+            </div>
+            <iframe id="card-preview" title="賀卡預覽"></iframe>
+          </div>
+        </div>
+
+        <div class="preview-footer">
+          <div>
+            <span id="preview-state" class="preview-state">尚未選擇</span>
+            <span id="preview-url" class="preview-url"></span>
+          </div>
+          <a id="open-full-card" class="text-link" href="#" target="_blank" rel="noopener" hidden>另開完整頁面 ↗</a>
+        </div>
+      </section>
+    </div>
   </main>
 
   <footer>
@@ -56,29 +86,28 @@
 
   <template id="card-template">
     <article class="card-item">
-      <div class="card-topline">
-        <span class="status-badge"></span>
-        <span class="card-id"></span>
-      </div>
-      <div class="card-content">
-        <p class="festival-label"></p>
-        <h3 class="card-title"></h3>
-        <p class="card-message"></p>
-      </div>
-      <dl class="card-meta">
-        <div>
-          <dt>正式路徑</dt>
-          <dd class="canonical-path"></dd>
-        </div>
-        <div>
-          <dt>短碼</dt>
-          <dd class="short-code"></dd>
-        </div>
-      </dl>
-      <div class="card-actions">
-        <a class="primary-action card-link">開啟賀卡</a>
-        <span class="publish-note"></span>
-      </div>
+      <button type="button" class="card-select">
+        <span class="thumbnail-wrap">
+          <img class="card-thumbnail" alt="" loading="lazy">
+        </span>
+        <span class="card-summary">
+          <span class="card-topline">
+            <span class="status-badge"></span>
+            <span class="card-id"></span>
+          </span>
+          <span class="festival-label"></span>
+          <strong class="card-title"></strong>
+          <span class="card-message"></span>
+          <span class="card-meta">
+            <span><small>正式路徑</small><code class="canonical-path"></code></span>
+            <span><small>短碼</small><code class="short-code"></code></span>
+          </span>
+          <span class="card-bottomline">
+            <span class="preview-action">在右側預覽</span>
+            <span class="publish-note"></span>
+          </span>
+        </span>
+      </button>
     </article>
   </template>
 

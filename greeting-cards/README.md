@@ -44,7 +44,9 @@ greeting-cards/
 
 `dashboard/` 是電子賀卡專用的內部管理頁，不是 lab 根目錄的專案總覽。
 
-Dashboard 目前會讀取 `data/cards.json`，顯示賀卡狀態、公開路徑與預覽入口。請透過本機 HTTP 伺服器或正式主機開啟，不要直接以 `file://` 開啟，否則瀏覽器可能阻擋 JSON 載入。
+Dashboard 目前會讀取 `data/cards.json`，顯示賀卡狀態、最終畫面縮圖、公開路徑與即時預覽。預覽區可切換桌機及手機外框。請透過本機 HTTP 伺服器或正式主機開啟，不要直接以 `file://` 開啟，否則瀏覽器可能阻擋 JSON 載入。
+
+每張賀卡以 `previewImage` 指定清單縮圖。縮圖應保留動畫結束後的完整祝福畫面，並在賀卡最終版本異動時重新產生。
 
 `data/cards.json` 是平台的賀卡清單。第一階段由 Dashboard 讀取這份靜態資料，不連接資料庫。
 
