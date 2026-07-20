@@ -3,30 +3,133 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lab 工具總覽</title>
+<title>Lab 專案總覽</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <main>
   <header class="page-header">
     <div>
-      <h1>Lab 工具總覽</h1>
-      <p class="subtitle">內部工具箱。點選卡片進入對應的專案。</p>
+      <p class="eyebrow">DGHM · LAB</p>
+      <h1>專案總覽</h1>
+      <p class="subtitle">集中查看各專案目前狀態、入口與下一步。</p>
     </div>
     <button id="theme-toggle" class="theme-toggle" aria-label="切換深色/淺色模式">☀️</button>
   </header>
 
-  <section class="grid">
-    <a class="card" href="https://YOUR-COURT-RESERVATION-SITE.netlify.app" target="_blank" rel="noopener">
-      <span class="tag tag-mgmt">內部管理</span>
-      <h2>球場預約系統</h2>
-      <p>管理場地預約時段、會員登入與場主後台，提供每日時段預約與管理功能。</p>
-    </a>
-
-    <div class="card card-placeholder">
-      <p>未來新增的專案會放在這裡</p>
-    </div>
+  <section class="summary" aria-label="專案摘要">
+    <div><strong>4</strong><span>專案</span></div>
+    <div><strong>2</strong><span>已上線</span></div>
+    <div><strong>1</strong><span>待部署確認</span></div>
+    <div><strong>1</strong><span>平台建置中</span></div>
   </section>
+
+  <section class="section-heading">
+    <div>
+      <h2>進行中的專案</h2>
+      <p>更新日期：2026/07/20</p>
+    </div>
+    <span class="legend"><i></i> 待辦項目</span>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <div class="card-topline">
+        <span class="status status-live">上線維運</span>
+        <span class="stack">PHP · MySQL</span>
+      </div>
+      <h3>667 公寓費用分攤</h3>
+      <p class="description">水電瓦斯與網路費用分攤、房客查詢及繳費追蹤。</p>
+      <div class="progress-meta"><span>核心功能完成</span><strong>維運中</strong></div>
+      <div class="progress"><span style="width: 92%"></span></div>
+      <div class="todo-block">
+        <h4>下一步</h4>
+        <ul>
+          <li>關閉舊站並移除測試房客帳號</li>
+          <li>加入 admin 重設房客密碼</li>
+          <li>建立結算備份與年度統計</li>
+        </ul>
+      </div>
+      <div class="card-actions">
+        <a class="primary" href="https://lab.dghm.tw/apt/" target="_blank" rel="noopener">開啟專案</a>
+        <a href="apt/CLAUDE.md">查看文件</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-topline">
+        <span class="status status-live">已上線 · 持續開發</span>
+        <span class="stack">PHP · MySQL</span>
+      </div>
+      <h3>個人投資 Dashboard</h3>
+      <p class="description">跨資產配置、損益、停利監控與再平衡建議。</p>
+      <div class="progress-meta"><span>主要追蹤功能完成</span><strong>增強中</strong></div>
+      <div class="progress"><span style="width: 78%"></span></div>
+      <div class="todo-block">
+        <h4>下一步</h4>
+        <ul>
+          <li>停利達標排程與推播通知</li>
+          <li>每日資產快照與成長趨勢圖</li>
+          <li>自動取得基金淨值</li>
+        </ul>
+      </div>
+      <div class="card-actions">
+        <a class="primary" href="https://lab.dghm.tw/myinvestment/" target="_blank" rel="noopener">開啟專案</a>
+        <a href="myinvestment/README.md">查看文件</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-topline">
+        <span class="status status-review">待部署確認</span>
+        <span class="stack">Node.js · Netlify</span>
+      </div>
+      <h3>球場預約系統</h3>
+      <p class="description">會員預約、場館管理、業主後台與多角色權限。</p>
+      <div class="progress-meta"><span>MVP 程式已建立</span><strong>驗證中</strong></div>
+      <div class="progress progress-review"><span style="width: 65%"></span></div>
+      <div class="todo-block">
+        <h4>下一步</h4>
+        <ul>
+          <li>確認正式 Netlify 網址與部署狀態</li>
+          <li>確認 Turso、JWT 等正式環境設定</li>
+          <li>補上 README 與核心流程驗收</li>
+        </ul>
+      </div>
+      <div class="card-actions">
+        <a class="primary" href="court-reservation-system/public/index.html">本地預覽</a>
+        <a href="court-reservation-system/package.json">查看設定</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-topline">
+        <span class="status status-draft">平台建置中</span>
+        <span class="stack">HTML · CSS · JSON</span>
+      </div>
+      <h3>企業電子賀卡平台</h3>
+      <p class="description">管理歷年節慶賀卡、公開路徑與跨裝置預覽；首張為 2026 中秋賀卡。</p>
+      <div class="progress-meta"><span>平台骨架與 Dashboard 已建立</span><strong>第一階段</strong></div>
+      <div class="progress progress-draft"><span style="width: 75%"></span></div>
+      <div class="todo-block">
+        <h4>下一步</h4>
+        <ul>
+          <li>完成 QR Code 產生與下載</li>
+          <li>完成手機與瀏覽器發布前驗收</li>
+          <li>確認 cards.dghm.tw 部署與短網址</li>
+        </ul>
+      </div>
+      <div class="card-actions">
+        <a class="primary" href="greeting-cards/dashboard/index.html">開啟 Dashboard</a>
+        <a href="greeting-cards/README.md">查看文件</a>
+      </div>
+    </article>
+  </section>
+
+  <aside class="maintenance-note">
+    <strong>維護方式</strong>
+    <p>完成工作後，直接更新對應卡片的狀態、進度與「下一步」；詳細技術記錄仍放在各專案自己的 README、CLAUDE 或 HANDOFF 文件。</p>
+  </aside>
 
   <footer class="page-footer">
     <span>萬能數維有限公司（DGHM）</span>

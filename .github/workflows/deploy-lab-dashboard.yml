@@ -1,0 +1,82 @@
+name: Deploy lab dashboard to Bluehost
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "style.css"
+      - "theme.js"
+      - ".github/workflows/deploy-lab-dashboard.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-lab-dashboard-bluehost
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BLUEHOST_LAB_PATH: /home1/zjqafhmy/lab.dghm.tw
+
+jobs:
+  deploy:
+    name: SSH/rsync deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BLUEHOST_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BLUEHOST_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment settings
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_LAB_PATH }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_PORT"
+          test -n "$DEPLOY_USER"
+          test "$DEPLOY_PATH" = "/home1/zjqafhmy/lab.dghm.tw"
+
+      - name: Deploy dashboard files
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_LAB_PATH }}
+        run: |
+          set -eu
+          RSYNC_SSH="ssh -p $DEPLOY_PORT"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            index.html style.css theme.js \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Verify protected dashboard
+        run: |
+          set -eu
+          status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' \
+            https://lab.dghm.tw/)
+          case "$status" in
+            200) echo "Lab dashboard is publicly reachable." ;;
+            401) echo "Lab dashboard is reachable and password protected." ;;
+            *) echo "Lab dashboard returned HTTP $status" >&2; exit 1 ;;
+          esac
