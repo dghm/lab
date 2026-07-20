@@ -90,5 +90,11 @@ jobs:
           CARD_URL: https://lab.dghm.tw/greeting-cards/cards/2026/mid-autumn/
         run: |
           set -eu
-          curl --fail --silent --show-error --location --retry 3 "$DASHBOARD_URL" > /dev/null
+          dashboard_status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "$DASHBOARD_URL")
+          case "$dashboard_status" in
+            200) echo "Dashboard is publicly reachable." ;;
+            401) echo "Dashboard is reachable and password protected." ;;
+            *) echo "Dashboard returned HTTP $dashboard_status" >&2; exit 1 ;;
+          esac
           curl --fail --silent --show-error --location --retry 3 "$CARD_URL" > /dev/null
