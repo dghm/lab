@@ -1,0 +1,94 @@
+name: Deploy greeting cards to Bluehost
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "greeting-cards/**"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-greeting-cards-bluehost
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: SFTP deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BLUEHOST_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BLUEHOST_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment settings
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_GREETING_CARDS_PATH }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_PORT"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PATH"
+          case "$DEPLOY_PATH" in
+            */greeting-cards|*/greeting-cards/) ;;
+            *) echo "Deployment path must end with /greeting-cards" >&2; exit 1 ;;
+          esac
+
+      - name: Create remote directories
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_GREETING_CARDS_PATH }}
+        run: |
+          set -eu
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "mkdir -p '$DEPLOY_PATH/dashboard' '$DEPLOY_PATH/data' '$DEPLOY_PATH/cards'"
+
+      - name: Deploy public project files
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ secrets.BLUEHOST_GREETING_CARDS_PATH }}
+        run: |
+          set -eu
+          RSYNC_SSH="ssh -p $DEPLOY_PORT"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/dashboard/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/dashboard/"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/data/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/data/"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/cards/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/cards/"
+
+      - name: Verify deployed pages
+        env:
+          DASHBOARD_URL: https://lab.dghm.tw/greeting-cards/dashboard/
+          CARD_URL: https://lab.dghm.tw/greeting-cards/cards/2026/mid-autumn/
+        run: |
+          set -eu
+          curl --fail --silent --show-error --location --retry 3 "$DASHBOARD_URL" > /dev/null
+          curl --fail --silent --show-error --location --retry 3 "$CARD_URL" > /dev/null
