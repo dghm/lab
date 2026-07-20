@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "greeting-cards/**"
+      - ".github/workflows/deploy-greeting-cards.yml"
   workflow_dispatch:
 
 concurrency:
