@@ -29,9 +29,13 @@ greeting-cards/
 │           └── *.svg
 ├── data/
 │   └── cards.json
+├── public-root/
+│   └── .htaccess     # 公開網域 HTTPS 與短網址規則
 ├── .gitignore
 └── README.md
 ```
+
+`public-root/` 僅部署到 `cards.dghm.tw` 的網站根目錄，用來保存平台層級設定，不屬於任何單張賀卡。
 
 後續預計擴充：
 

@@ -1,0 +1,8 @@
+RewriteEngine On
+
+# Keep every public card request on the canonical HTTPS host.
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://cards.dghm.tw%{REQUEST_URI} [R=301,L,NE]
+
+# Printed short URLs stay stable while their destination can change later.
+RewriteRule ^m26/?$ /2026/mid-autumn/ [R=302,L,NE]

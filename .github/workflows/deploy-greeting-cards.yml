@@ -105,6 +105,9 @@ jobs:
           set -eu
           RSYNC_SSH="ssh -p $DEPLOY_PORT"
           rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/public-root/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$PUBLIC_CARDS_PATH/"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
             greeting-cards/cards/ \
             "$DEPLOY_USER@$DEPLOY_HOST:$PUBLIC_CARDS_PATH/"
 
@@ -131,7 +134,8 @@ jobs:
 
       - name: Verify public card
         env:
-          PUBLIC_CARD_URL: http://cards.dghm.tw/2026/mid-autumn/
+          PUBLIC_CARD_URL: https://cards.dghm.tw/2026/mid-autumn/
+          SHORT_CARD_URL: https://cards.dghm.tw/m26
         run: |
           set -eu
           public_card_status=$(curl --silent --show-error --location --retry 3 \
@@ -139,4 +143,10 @@ jobs:
           case "$public_card_status" in
             200) echo "Public card is reachable." ;;
             *) echo "Public card returned HTTP $public_card_status" >&2; exit 1 ;;
+          esac
+          short_card_result=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code} %{url_effective}' "$SHORT_CARD_URL")
+          case "$short_card_result" in
+            "200 https://cards.dghm.tw/2026/mid-autumn/") echo "Printed short URL is working." ;;
+            *) echo "Short URL check failed: $short_card_result" >&2; exit 1 ;;
           esac
