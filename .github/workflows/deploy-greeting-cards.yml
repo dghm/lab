@@ -43,15 +43,21 @@ jobs:
           DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
           DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
           DEPLOY_PATH: ${{ secrets.BLUEHOST_GREETING_CARDS_PATH }}
+          PUBLIC_CARDS_PATH: ${{ secrets.BLUEHOST_PUBLIC_CARDS_PATH }}
         run: |
           set -eu
           test -n "$DEPLOY_HOST"
           test -n "$DEPLOY_PORT"
           test -n "$DEPLOY_USER"
           test -n "$DEPLOY_PATH"
+          test -n "$PUBLIC_CARDS_PATH"
           case "$DEPLOY_PATH" in
             */greeting-cards|*/greeting-cards/) ;;
             *) echo "Deployment path must end with /greeting-cards" >&2; exit 1 ;;
+          esac
+          case "$PUBLIC_CARDS_PATH" in
+            */cards.dghm.tw|*/cards.dghm.tw/) ;;
+            *) echo "Public cards path must end with /cards.dghm.tw" >&2; exit 1 ;;
           esac
 
       - name: Create remote directories
@@ -60,10 +66,11 @@ jobs:
           DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
           DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
           DEPLOY_PATH: ${{ secrets.BLUEHOST_GREETING_CARDS_PATH }}
+          PUBLIC_CARDS_PATH: ${{ secrets.BLUEHOST_PUBLIC_CARDS_PATH }}
         run: |
           set -eu
           ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
-            "mkdir -p '$DEPLOY_PATH/dashboard' '$DEPLOY_PATH/data' '$DEPLOY_PATH/cards'"
+            "mkdir -p '$DEPLOY_PATH/dashboard' '$DEPLOY_PATH/data' '$DEPLOY_PATH/cards' '$PUBLIC_CARDS_PATH'"
 
       - name: Deploy public project files
         env:
@@ -87,6 +94,19 @@ jobs:
             greeting-cards/cards/ \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/cards/"
 
+      - name: Deploy cards to public domain
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          PUBLIC_CARDS_PATH: ${{ secrets.BLUEHOST_PUBLIC_CARDS_PATH }}
+        run: |
+          set -eu
+          RSYNC_SSH="ssh -p $DEPLOY_PORT"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/cards/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$PUBLIC_CARDS_PATH/"
+
       - name: Verify deployed pages
         env:
           DASHBOARD_URL: https://lab.dghm.tw/greeting-cards/dashboard/
@@ -106,4 +126,16 @@ jobs:
             200) echo "Card is publicly reachable." ;;
             401) echo "Card is reachable inside the password-protected lab staging site." ;;
             *) echo "Card returned HTTP $card_status" >&2; exit 1 ;;
+          esac
+
+      - name: Verify public card
+        env:
+          PUBLIC_CARD_URL: http://cards.dghm.tw/2026/mid-autumn/
+        run: |
+          set -eu
+          public_card_status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "$PUBLIC_CARD_URL")
+          case "$public_card_status" in
+            200) echo "Public card is reachable." ;;
+            *) echo "Public card returned HTTP $public_card_status" >&2; exit 1 ;;
           esac
