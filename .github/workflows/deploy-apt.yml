@@ -1,0 +1,124 @@
+name: Deploy apt to Bluehost
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "apt/**"
+
+concurrency:
+  group: deploy-apt-bluehost
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BLUEHOST_APT_PATH: /home1/zjqafhmy/lab.dghm.tw/apt
+  BLUEHOST_APT_URL: https://lab.dghm.tw/apt/
+
+jobs:
+  deploy:
+    name: SSH/rsync deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.BLUEHOST_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.BLUEHOST_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Validate deployment settings
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_APT_PATH }}
+        run: |
+          set -eu
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_PORT"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_PATH"
+          case "$DEPLOY_PATH" in
+            */apt|*/apt/) ;;
+            *) echo "Deployment path must end with /apt" >&2; exit 1 ;;
+          esac
+
+      - name: Validate protected remote files
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_APT_PATH }}
+        run: |
+          set -eu
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "test -d '$DEPLOY_PATH' && test -f '$DEPLOY_PATH/config.php' && test -d '$DEPLOY_PATH/uploads/bills'"
+
+      - name: Deploy allowlisted application files
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_APT_PATH }}
+        run: |
+          set -eu
+          RSYNC_SSH="ssh -p $DEPLOY_PORT"
+          rsync -az --checksum --itemize-changes \
+            --include='/.htaccess' \
+            --include='/admin.php' \
+            --include='/bill-file.php' \
+            --include='/db.php' \
+            --include='/functions.php' \
+            --include='/index.php' \
+            --include='/login.php' \
+            --include='/logout.php' \
+            --include='/assets/' \
+            --include='/assets/***' \
+            --exclude='*' \
+            -e "$RSYNC_SSH" \
+            apt/ \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Verify deployment
+        env:
+          DEPLOY_HOST: ${{ secrets.BLUEHOST_HOST }}
+          DEPLOY_PORT: ${{ secrets.BLUEHOST_PORT }}
+          DEPLOY_USER: ${{ secrets.BLUEHOST_USERNAME }}
+          DEPLOY_PATH: ${{ env.BLUEHOST_APT_PATH }}
+          DEPLOY_URL: ${{ env.BLUEHOST_APT_URL }}
+        run: |
+          set -eu
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "test -f '$DEPLOY_PATH/config.php' && test -d '$DEPLOY_PATH/uploads/bills'"
+
+          status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "$DEPLOY_URL")
+          test "$status" = "200" || {
+            echo "apt returned HTTP $status" >&2
+            exit 1
+          }
+
+          config_status=$(curl --silent --show-error --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "${DEPLOY_URL}config.php")
+          test "$config_status" = "403" || {
+            echo "Protected config.php returned HTTP $config_status" >&2
+            exit 1
+          }
+
+          echo "apt is reachable and config.php remains protected."
