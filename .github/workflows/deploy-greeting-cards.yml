@@ -75,6 +75,9 @@ jobs:
           set -eu
           RSYNC_SSH="ssh -p $DEPLOY_PORT"
           rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
+            greeting-cards/index.html \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/index.html"
+          rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
             greeting-cards/dashboard/ \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/dashboard/"
           rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \

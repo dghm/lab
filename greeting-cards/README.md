@@ -17,6 +17,7 @@ DGHM 長期使用的企業節慶電子賀卡發布平台。平台用於管理不
 
 ```text
 greeting-cards/
+├── index.html       # 導向賀卡 Dashboard 的專案入口
 ├── dashboard/
 │   ├── index.html
 │   ├── dashboard.css
@@ -43,6 +44,8 @@ greeting-cards/
 ```
 
 `dashboard/` 是電子賀卡專用的內部管理頁，不是 lab 根目錄的專案總覽。
+
+開啟 `greeting-cards/` 根路徑時，`index.html` 會導向 `dashboard/`，方便本機與 staging 使用同一個簡短入口。
 
 Dashboard 目前會讀取 `data/cards.json`，顯示賀卡狀態、最終畫面縮圖、公開路徑與即時預覽。預覽區可切換桌機及手機外框。請透過本機 HTTP 伺服器或正式主機開啟，不要直接以 `file://` 開啟，否則瀏覽器可能阻擋 JSON 載入。
 
