@@ -97,4 +97,10 @@ jobs:
             401) echo "Dashboard is reachable and password protected." ;;
             *) echo "Dashboard returned HTTP $dashboard_status" >&2; exit 1 ;;
           esac
-          curl --fail --silent --show-error --location --retry 3 "$CARD_URL" > /dev/null
+          card_status=$(curl --silent --show-error --location --retry 3 \
+            --output /dev/null --write-out '%{http_code}' "$CARD_URL")
+          case "$card_status" in
+            200) echo "Card is publicly reachable." ;;
+            401) echo "Card is reachable inside the password-protected lab staging site." ;;
+            *) echo "Card returned HTTP $card_status" >&2; exit 1 ;;
+          esac
