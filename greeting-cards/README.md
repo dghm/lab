@@ -22,6 +22,8 @@ greeting-cards/
 │       └── mid-autumn/
 │           ├── index.html
 │           └── *.svg
+├── data/
+│   └── cards.json
 ├── .gitignore
 └── README.md
 ```
@@ -37,6 +39,8 @@ greeting-cards/
 ```
 
 `dashboard/` 是電子賀卡專用的內部管理頁，不是 lab 根目錄的專案總覽。
+
+`data/cards.json` 是平台的賀卡清單。第一階段由 Dashboard 讀取這份靜態資料，不連接資料庫。
 
 ## 命名規則
 
