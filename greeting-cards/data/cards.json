@@ -5,7 +5,7 @@
       "id": "2026-mid-autumn",
       "year": 2026,
       "festival": "mid-autumn",
-      "status": "draft",
+      "status": "published",
       "title": "2026 中秋賀卡",
       "message": "感謝這段時間的信任與合作，願您闔家平安、月圓事圓。",
       "signature": "萬能數維有限公司 敬賀",
@@ -13,8 +13,8 @@
       "previewImage": "cards/2026/mid-autumn/preview-final.jpg",
       "canonicalPath": "/2026/mid-autumn/",
       "shortCode": "m26",
-      "publicUrl": null,
-      "publishedAt": null,
+      "publicUrl": "https://cards.dghm.tw/2026/mid-autumn/",
+      "publishedAt": "2026-07-20",
       "archivedAt": null
     }
   ]
