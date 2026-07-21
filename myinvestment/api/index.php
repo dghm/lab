@@ -37,7 +37,19 @@ try {
 
 function list_holdings(): array
 {
-    return db()->query('SELECT * FROM holdings ORDER BY category, name')->fetchAll();
+    $rows = db()->query('SELECT * FROM holdings ORDER BY category, name')->fetchAll();
+    foreach ($rows as &$h) {
+        $h['current_invested'] = invested_amount($h);
+        $h['dca_contribution_count'] = 0;
+        if ((int) $h['is_dca'] === 1 && $h['dca_day'] && $h['cost_base_date']) {
+            $h['dca_contribution_count'] = dca_contributions(
+                $h['cost_base_date'],
+                (int) $h['dca_day']
+            );
+        }
+    }
+    unset($h);
+    return $rows;
 }
 
 function save_holding(array $d): array

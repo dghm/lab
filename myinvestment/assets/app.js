@@ -178,15 +178,45 @@ function toggleFields() {
     const show = (sel, on) => dlg.querySelectorAll(sel).forEach(e => e.style.display = on ? '' : 'none');
     show('.ticker-field', cat === 'tw_stock');
     show('.isin-field', cat === 'fund');
+    show('.fund-bank-summary', cat === 'fund');
     show('.auto-field', cat === 'tw_stock' || cat === 'fund');
     show('.notcash-field', cat !== 'cash');
     show('.balance-field', cat === 'cash');
     show('.equitypct-field', document.getElementById('assetClassSel').value === 'balanced');
     show('.dca-field', document.getElementById('isDca').checked);
-    document.getElementById('qtyLabel').firstChild.textContent =
-        cat === 'fund' ? '持有單位數' : '股數';
-    dlg.querySelector('.price-field').firstChild.textContent =
-        cat === 'fund' ? '目前淨值（原幣）' : '目前股價（原幣）';
+    document.getElementById('qtyLabelText').textContent =
+        cat === 'fund' ? '單位數' : '股數';
+    document.getElementById('priceLabelText').textContent =
+        cat === 'fund' ? '參考淨值' : '目前股價（原幣）';
+    document.getElementById('costBaseLabelText').textContent =
+        cat === 'fund' ? '自動累加起始金額' : '累計投入基準（原幣，含手續費）';
+    document.getElementById('costBaseHelp').textContent = cat === 'fund'
+        ? '系統由此金額開始累加每期扣款與手續費；不是銀行目前顯示的投資金額。'
+        : '';
+    document.getElementById('cumDividendLabelText').textContent =
+        cat === 'fund' ? '累計配息' : '累計配息（原幣，月配型才填）';
+}
+
+function renderFundBankSummary(h) {
+    const row = ROWS.find(x => +x.id === +h.id);
+    const currency = h.currency || '';
+    const invested = h.current_invested != null ? +h.current_invested : null;
+    const value = row?.nativeValue != null ? +row.nativeValue : null;
+    const dividends = h.cum_dividend != null ? +h.cum_dividend : 0;
+    const pl = invested != null && value != null ? value - invested + dividends : null;
+    const money = n => n == null ? '—' : `${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+    document.getElementById('bankInvested').textContent = money(invested);
+    document.getElementById('bankValue').textContent = money(value);
+    document.getElementById('bankPl').textContent = pl == null ? '—' : `${pl >= 0 ? '+' : ''}${money(pl)}`;
+    document.getElementById('bankReturn').textContent = row?.returnPct == null ? '—' : `${row.returnPct}%`;
+
+    const count = +h.dca_contribution_count || 0;
+    const amount = +(h.dca_amount || 0);
+    const fee = +(h.dca_fee || 0);
+    const base = +(h.cost_base || 0);
+    document.getElementById('bankInvestedFormula').textContent = +h.is_dca === 1
+        ? `${base.toFixed(2)} + ${count} 次 × (${amount.toFixed(2)} + ${fee.toFixed(2)}) = ${(invested ?? 0).toFixed(2)} ${currency}`
+        : '目前累計投入等於自動累加起始金額。';
 }
 
 function openAdd() {
@@ -194,6 +224,11 @@ function openAdd() {
     document.getElementById('dlgTitle').textContent = '新增資產';
     document.getElementById('autoPrice').checked = false;
     document.getElementById('isDca').checked = false;
+    document.getElementById('bankInvested').textContent = '—';
+    document.getElementById('bankValue').textContent = '—';
+    document.getElementById('bankPl').textContent = '—';
+    document.getElementById('bankReturn').textContent = '—';
+    document.getElementById('bankInvestedFormula').textContent = '';
     toggleFields(); dlg.showModal();
 }
 
@@ -214,7 +249,9 @@ function openEdit(id) {
     document.getElementById('autoPrice').checked = h.price_mode === 'auto';
     document.getElementById('isDca').checked = +h.is_dca === 1;
     document.getElementById('dlgTitle').textContent = '編輯資產';
-    toggleFields(); dlg.showModal();
+    toggleFields();
+    if (h.category === 'fund') renderFundBankSummary(h);
+    dlg.showModal();
 }
 
 form.onsubmit = async () => {

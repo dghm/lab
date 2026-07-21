@@ -136,18 +136,32 @@
             <label class="equitypct-field">股票占比 %<input name="equity_pct" type="number" step="any" min="0" max="100" placeholder="平衡型才填，例 60"></label>
         </div>
         <label class="ticker-field">台股代號<input name="ticker" placeholder="例：2330"></label>
-        <label class="isin-field">基金 ISIN（選填，自動抓淨值用）<input name="isin"></label>
+        <label class="isin-field">基金 ISIN<input name="isin">
+            <span class="field-help">基金級別的國際識別碼，不是銀行基金代碼；自動比對淨值用。</span>
+        </label>
 
         <div class="row notcash-field">
-            <label id="qtyLabel">持有單位 / 股數<input name="quantity" type="number" step="any"></label>
-            <label class="price-field">目前單價 / 淨值（原幣）<input name="manual_price" type="number" step="any"></label>
+            <label id="qtyLabel"><span id="qtyLabelText">持有單位 / 股數</span><input name="quantity" type="number" step="any"></label>
+            <label class="price-field"><span id="priceLabelText">目前單價 / 淨值（原幣）</span><input name="manual_price" type="number" step="any"></label>
         </div>
         <label class="balance-field">現金餘額<input name="balance" type="number" step="any"></label>
         <label class="auto-field"><input type="checkbox" name="price_mode" id="autoPrice"> 自動抓價（台股即時價 / 基金以 ISIN 嘗試）</label>
 
+        <section class="fund-bank-summary" aria-labelledby="fundBankSummaryTitle">
+            <h4 id="fundBankSummaryTitle">銀行欄位對照</h4>
+            <div class="bank-summary-grid">
+                <div><span>投資金額（含手續費）</span><strong id="bankInvested">—</strong></div>
+                <div><span>投資現值</span><strong id="bankValue">—</strong></div>
+                <div><span>投資損益</span><strong id="bankPl">—</strong></div>
+                <div><span>報酬率</span><strong id="bankReturn">—</strong></div>
+            </div>
+            <p class="field-help" id="bankInvestedFormula"></p>
+        </section>
+
         <div class="notcash-field cost-block">
-            <label>累計投入基準（原幣，含手續費）
+            <label><span id="costBaseLabelText">累計投入基準（原幣，含手續費）</span>
                 <input name="cost_base" type="number" step="any" placeholder="設成銀行目前『投資金額』，既往不究">
+                <span class="field-help" id="costBaseHelp"></span>
             </label>
             <label class="auto-field"><input type="checkbox" name="is_dca" id="isDca"> 定期定額（每月自動累加投入）</label>
             <div class="row dca-field">
@@ -157,7 +171,7 @@
             </div>
             <div class="row">
                 <label>停利目標報酬率 %（選填）<input name="target_return" type="number" step="any" placeholder="例 60"></label>
-                <label>累計配息（原幣，月配型才填）<input name="cum_dividend" type="number" step="any" placeholder="例 4731"></label>
+                <label><span id="cumDividendLabelText">累計配息（原幣，月配型才填）</span><input name="cum_dividend" type="number" step="any" placeholder="例 4731"></label>
             </div>
         </div>
         <label>備註<input name="note"></label>
