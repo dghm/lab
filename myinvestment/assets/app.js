@@ -297,6 +297,7 @@ async function openTxnDialog(holdingId, name, currency, category, ticker) {
     document.getElementById('txnUnitPrice').value = '';
     document.getElementById('txnNote').value = '';
     document.getElementById('txnHint').textContent = '';
+    updateTxnFeeNote();
     await loadTxnList(holdingId);
     txnDlg.showModal();
 }
@@ -324,10 +325,20 @@ function estimateTwFee() {
     }
     document.getElementById('txnFee').value = fee;
 }
+function updateTxnFeeNote() {
+    const type = document.getElementById('txnType').value;
+    document.getElementById('txnFeeNote').classList.toggle(
+        'hidden',
+        txnCategory !== 'tw_stock' || (type !== 'buy' && type !== 'sell')
+    );
+}
 document.getElementById('txnQty').addEventListener('input', calcTwAmount);
 document.getElementById('txnUnitPrice').addEventListener('input', calcTwAmount);
 document.getElementById('txnAmount').addEventListener('input', estimateTwFee);
-document.getElementById('txnType').addEventListener('change', estimateTwFee);
+document.getElementById('txnType').addEventListener('change', () => {
+    estimateTwFee();
+    updateTxnFeeNote();
+});
 
 async function loadTxnList(holdingId) {
     const res = await api(`txn_list&holding_id=${holdingId}`);
@@ -337,14 +348,14 @@ async function loadTxnList(holdingId) {
         return;
     }
     list.innerHTML = `<table class="data-table mini" style="margin:0 0 12px">
-        <thead><tr><th>日期</th><th>類型</th><th class="num">金額</th><th class="num">手續費</th><th>數量</th><th>備註</th><th></th></tr></thead>
+        <thead><tr><th>日期</th><th>類型</th><th class="num">金額</th><th class="num secondary-col">手續費</th><th>數量</th><th class="secondary-col">備註</th><th></th></tr></thead>
         <tbody>${res.txns.map(t => `<tr>
             <td>${t.txn_date}</td>
             <td>${TXN_LABEL[t.txn_type] || t.txn_type}</td>
             <td class="num">${(+t.amount).toLocaleString()} ${t.currency}</td>
-            <td class="num">${t.fee != null ? (+t.fee).toLocaleString() : '—'}</td>
+            <td class="num secondary-col">${t.fee != null ? (+t.fee).toLocaleString() : '—'}</td>
             <td>${t.quantity != null ? (+t.quantity).toLocaleString() : '—'}</td>
-            <td>${t.note || ''}</td>
+            <td class="secondary-col">${t.note || ''}</td>
             <td><button class="link del-txn" data-id="${t.id}" data-hid="${t.holding_id}">刪</button></td>
         </tr>`).join('')}</tbody>
     </table>`;

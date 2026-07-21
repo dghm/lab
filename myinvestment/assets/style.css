@@ -118,10 +118,19 @@ legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
 .hint { margin: 12px 0 0; }
 .warn-text { color: #8a6d00; }
 
-.data-table.mini th, .data-table.mini td { padding: 6px 10px; font-size: 13px; }
-.txn-form { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.data-table.mini th, .data-table.mini td { padding: 7px 10px; font-size: 13px; }
+.txn-history { margin-top: 18px; }
+.txn-section-title { color: var(--ink); font-size: 13px; margin: 0 0 8px; }
+.txn-form { margin-top: 18px; padding: 16px; background: var(--bg); border-radius: 12px; }
 .txn-form .row label { flex: 1; }
+.txn-form label { color: #667085; }
+.txn-form .primary-inputs label { color: var(--ink); font-weight: 600; }
 .txn-form .primary-inputs input { font-size: 16px; font-weight: 600; padding-block: 10px; }
+.txn-form .secondary-inputs input { background: rgba(255,255,255,.65); color: #667085; }
+.txn-fee-note { font-size: 11px; margin: 6px 0 0; }
+.txn-list .secondary-col { color: var(--muted); }
+.txn-list .del-txn { opacity: .5; }
+.txn-list .del-txn:hover { opacity: 1; }
 
 textarea { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line);
     border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; resize: vertical; }
@@ -150,4 +159,5 @@ dialog#txnDialog { width: min(640px, 96vw); }
 @media (max-width: 760px) {
     .charts { grid-template-columns: 1fr; }
     .cards { flex-direction: column; }
+    .txn-form { padding: 14px; }
 }

@@ -171,9 +171,12 @@
 <!-- 交易記錄 -->
 <dialog id="txnDialog">
     <h3 id="txnDlgTitle">交易記錄</h3>
-    <div id="txnList" class="txn-list"></div>
+    <section class="txn-history" aria-labelledby="txnHistoryTitle">
+        <h4 id="txnHistoryTitle" class="txn-section-title">最近交易</h4>
+        <div id="txnList" class="txn-list"></div>
+    </section>
     <div class="txn-form">
-        <h4 style="font-size:13px;color:var(--muted);margin:0 0 4px">新增交易</h4>
+        <h4 class="txn-section-title">新增一筆</h4>
         <form id="txnForm">
             <input type="hidden" id="txnHoldingId">
             <input type="hidden" id="txnCurrency">
@@ -193,11 +196,11 @@
                 <label>數量 / 單位數<input type="number" step="any" id="txnQty" placeholder="選填"></label>
                 <label>成交單價<input type="number" step="any" id="txnUnitPrice" placeholder="選填"></label>
             </div>
-            <div class="row">
+            <div class="row secondary-inputs">
                 <label>金額（原幣）<input type="number" step="any" id="txnAmount" placeholder="必填"></label>
                 <label>手續費（原幣）<input type="number" step="any" id="txnFee" placeholder="台股會自動估算"></label>
             </div>
-            <p class="muted" style="font-size:12px;margin-top:-6px">台股手續費為牌告 0.1425% 估算值，未反映券商折扣，請依實際扣款調整。</p>
+            <p class="muted txn-fee-note hidden" id="txnFeeNote">手續費依牌告 0.1425% 估算，請依實際扣款調整。</p>
             <label>備註<input type="text" id="txnNote" placeholder="選填"></label>
             <p class="muted hint" id="txnHint"></p>
             <menu>
