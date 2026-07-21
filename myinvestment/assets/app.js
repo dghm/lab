@@ -327,9 +327,15 @@ function estimateTwFee() {
 }
 function updateTxnFeeNote() {
     const type = document.getElementById('txnType').value;
+    const isPositionTrade = (type === 'buy' || type === 'sell') && txnCategory !== 'cash';
+    const isAutoTwTrade = isPositionTrade && txnCategory === 'tw_stock';
+    document.getElementById('txnQty').placeholder = isPositionTrade ? '必填' : '不適用';
+    document.getElementById('txnUnitPrice').placeholder = isPositionTrade ? '必填' : '不適用';
+    document.getElementById('txnAmount').placeholder = isAutoTwTrade ? '自動計算，可修改' : '必填';
+    document.getElementById('txnFee').placeholder = isAutoTwTrade ? '自動估算，可修改' : '選填';
     document.getElementById('txnFeeNote').classList.toggle(
         'hidden',
-        txnCategory !== 'tw_stock' || (type !== 'buy' && type !== 'sell')
+        !isAutoTwTrade
     );
 }
 document.getElementById('txnQty').addEventListener('input', calcTwAmount);
@@ -352,7 +358,7 @@ async function loadTxnList(holdingId) {
         <tbody>${res.txns.map(t => `<tr>
             <td>${t.txn_date}</td>
             <td>${TXN_LABEL[t.txn_type] || t.txn_type}</td>
-            <td class="num">${(+t.amount).toLocaleString()} ${t.currency}</td>
+            <td class="num"><span class="txn-amount"><span class="txn-currency">${t.currency}</span><span class="txn-amount-value">${(+t.amount).toLocaleString()}</span></span></td>
             <td class="num secondary-col">${t.fee != null ? (+t.fee).toLocaleString() : '—'}</td>
             <td>${t.quantity != null ? (+t.quantity).toLocaleString() : '—'}</td>
             <td class="secondary-col">${t.note || ''}</td>

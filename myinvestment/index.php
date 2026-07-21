@@ -193,14 +193,15 @@
                 </label>
             </div>
             <div class="row primary-inputs">
-                <label>數量 / 單位數<input type="number" step="any" id="txnQty" placeholder="選填"></label>
-                <label>成交單價<input type="number" step="any" id="txnUnitPrice" placeholder="選填"></label>
+                <label>數量 / 單位數<input type="number" step="any" id="txnQty" placeholder="必填"></label>
+                <label>成交單價<input type="number" step="any" id="txnUnitPrice" placeholder="必填"></label>
             </div>
             <div class="row secondary-inputs">
-                <label>金額（原幣）<input type="number" step="any" id="txnAmount" placeholder="必填"></label>
-                <label>手續費（原幣）<input type="number" step="any" id="txnFee" placeholder="台股會自動估算"></label>
+                <label>金額<input type="number" step="any" id="txnAmount" placeholder="自動計算，可修改"></label>
+                <label>手續費<input type="number" step="any" id="txnFee" placeholder="自動估算，可修改">
+                    <span class="muted txn-fee-note hidden" id="txnFeeNote">依牌告 0.1425% 估算，請依實際扣款調整。</span>
+                </label>
             </div>
-            <p class="muted txn-fee-note hidden" id="txnFeeNote">手續費依牌告 0.1425% 估算，請依實際扣款調整。</p>
             <label>備註<input type="text" id="txnNote" placeholder="選填"></label>
             <p class="muted hint" id="txnHint"></p>
             <menu>

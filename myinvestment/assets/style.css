@@ -127,10 +127,14 @@ legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
 .txn-form .primary-inputs label { color: var(--ink); font-weight: 600; }
 .txn-form .primary-inputs input { font-size: 16px; font-weight: 600; padding-block: 10px; }
 .txn-form .secondary-inputs input { background: rgba(255,255,255,.65); color: #667085; }
-.txn-fee-note { font-size: 11px; margin: 6px 0 0; }
+.txn-fee-note { display: block; font-size: 11px; font-weight: 400; margin-top: 6px; }
+.txn-fee-note.hidden { display: none; }
 .txn-list .secondary-col { color: var(--muted); }
 .txn-list .del-txn { opacity: .5; }
 .txn-list .del-txn:hover { opacity: 1; }
+.txn-list .txn-amount { display: inline-grid; grid-template-columns: 3ch minmax(7ch, auto); gap: .6ch; justify-content: end; }
+.txn-list .txn-currency { color: var(--muted); font-size: 11px; text-align: left; }
+.txn-list .txn-amount-value { text-align: right; }
 
 textarea { width: 100%; margin-top: 6px; padding: 10px; border: 1px solid var(--line);
     border-radius: 8px; font-family: ui-monospace, Menlo, monospace; font-size: 13px; resize: vertical; }
