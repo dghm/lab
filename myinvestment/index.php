@@ -61,6 +61,19 @@
             <div id="macroNews" class="macro-news-list"><p class="muted">載入中…</p></div>
         </article>
     </div>
+    <section class="market-compass" aria-labelledby="marketCompassTitle">
+        <div class="compass-head">
+            <div>
+                <h3 id="marketCompassTitle">市場羅盤</h3>
+                <p class="muted">用四個利率訊號判讀目前環境，不以單一數字決定買賣</p>
+            </div>
+            <span id="compassDate" class="muted"></span>
+        </div>
+        <div id="compassSignals" class="compass-signals"><p class="muted">載入中…</p></div>
+        <h4 class="compass-subtitle">對目前資產的環境傾向</h4>
+        <div id="compassAssets" class="compass-assets"></div>
+        <p id="compassDisclaimer" class="compass-disclaimer"></p>
+    </section>
 </section>
 
 <section class="charts">

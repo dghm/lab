@@ -89,6 +89,26 @@ button.link { background: none; color: var(--brand); padding: 2px 6px; font-size
 .macro-news-item strong { display: block; font-size: 13px; line-height: 1.45; font-weight: 600; }
 .macro-news-meta { display: flex; gap: 8px; color: var(--muted); font-size: 10px; margin-top: 4px; }
 .macro-error { padding: 16px 0; color: var(--muted); font-size: 12px; }
+.market-compass { margin-top: 16px; background: var(--card); border-radius: 14px; padding: 18px; box-shadow: 0 4px 16px rgba(31,36,48,.05); }
+.compass-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.compass-head h3 { color: var(--ink); font-size: 15px; margin: 0 0 3px; }
+.compass-head p { margin: 0; }
+.compass-signals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.compass-signal { border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+.compass-signal-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.compass-signal h4 { color: var(--muted); font-size: 11px; margin: 0 0 5px; }
+.compass-signal strong { font-size: 19px; font-variant-numeric: tabular-nums; }
+.compass-state { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; }
+.compass-state.supportive { color: #16733f; background: #e6f5ec; }
+.compass-state.neutral { color: #667085; background: #eef0f4; }
+.compass-state.caution { color: #a45c00; background: #fff1d6; }
+.compass-detail { color: var(--muted); font-size: 10px; line-height: 1.5; margin: 8px 0 0; }
+.compass-subtitle { color: var(--ink); font-size: 12px; margin: 16px 0 8px; }
+.compass-assets { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.compass-asset { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; padding: 10px 12px; background: var(--bg); border-radius: 9px; }
+.compass-asset strong { font-size: 12px; }
+.compass-asset p { grid-column: 1 / -1; color: var(--muted); font-size: 10px; line-height: 1.45; margin: 0; }
+.compass-disclaimer { color: var(--muted); font-size: 10px; margin: 12px 0 0; }
 
 .charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
 .chart-box {
@@ -196,5 +216,7 @@ dialog#txnDialog { width: min(640px, 96vw); }
     .charts { grid-template-columns: 1fr; }
     .cards { flex-direction: column; }
     .macro-grid { grid-template-columns: 1fr; }
+    .compass-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .compass-assets { grid-template-columns: 1fr; }
     .txn-form { padding: 14px; }
 }

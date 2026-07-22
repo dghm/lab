@@ -191,17 +191,19 @@ function fetch_fund_navs(array $isins): array
 function fetch_macro_dashboard(): array
 {
     $cacheFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
-        . 'myinvestment-macro-cache.json';
+        . 'myinvestment-macro-cache-v2.json';
     if (is_file($cacheFile) && time() - filemtime($cacheFile) <= 1800) {
         $cached = json_decode((string) file_get_contents($cacheFile), true);
-        if (is_array($cached) && isset($cached['yield'])) {
+        if (is_array($cached) && isset($cached['yield'], $cached['compass'])) {
             $cached['cached'] = true;
             return $cached;
         }
     }
 
+    $yield = fetch_us10y_yield();
     $result = [
-        'yield' => fetch_us10y_yield(),
+        'yield' => $yield,
+        'compass' => $yield !== null ? build_market_compass($yield['points']) : null,
         'news' => fetch_us10y_news(),
         'source' => 'U.S. Treasury Daily Par Yield Curve Rates',
         'sourceUrl' => 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates',
@@ -256,7 +258,46 @@ function fetch_treasury_10y_year(int $year): array
     $lines = preg_split('/\R/', trim($csv));
     $header = str_getcsv(array_shift($lines));
     $dateIndex = array_search('Date', $header, true);
+    $twoYearIndex = array_search('2 Yr', $header, true);
     $tenYearIndex = array_search('10 Yr', $header, true);
+    if ($dateIndex === false || $twoYearIndex === false || $tenYearIndex === false) {
+        return [];
+    }
+
+    $points = [];
+    foreach ($lines as $line) {
+        $cols = str_getcsv($line);
+        if (!isset($cols[$dateIndex], $cols[$twoYearIndex], $cols[$tenYearIndex])
+            || !is_numeric($cols[$twoYearIndex]) || !is_numeric($cols[$tenYearIndex])) {
+            continue;
+        }
+        $date = DateTime::createFromFormat('m/d/Y', $cols[$dateIndex]);
+        if ($date === false) {
+            continue;
+        }
+        $points[] = [
+            'date' => $date->format('Y-m-d'),
+            'value' => (float) $cols[$tenYearIndex],
+            'twoYear' => (float) $cols[$twoYearIndex],
+        ];
+    }
+    return $points;
+}
+
+function fetch_treasury_real_10y_year(int $year): array
+{
+    $url = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
+        . "daily-treasury-rates.csv/{$year}/all?type=daily_treasury_real_yield_curve"
+        . "&field_tdr_date_value={$year}&page&_format=csv";
+    $csv = http_get($url);
+    if ($csv === null) {
+        return [];
+    }
+
+    $lines = preg_split('/\R/', trim($csv));
+    $header = str_getcsv(array_shift($lines));
+    $dateIndex = array_search('Date', $header, true);
+    $tenYearIndex = array_search('10 YR', $header, true);
     if ($dateIndex === false || $tenYearIndex === false) {
         return [];
     }
@@ -268,12 +309,121 @@ function fetch_treasury_10y_year(int $year): array
             continue;
         }
         $date = DateTime::createFromFormat('m/d/Y', $cols[$dateIndex]);
-        if ($date === false) {
-            continue;
+        if ($date !== false) {
+            $points[] = ['date' => $date->format('Y-m-d'), 'value' => (float) $cols[$tenYearIndex]];
         }
-        $points[] = ['date' => $date->format('Y-m-d'), 'value' => (float) $cols[$tenYearIndex]];
     }
+    usort($points, static fn(array $a, array $b): int => strcmp($a['date'], $b['date']));
     return $points;
+}
+
+/**
+ * 市場羅盤只描述環境傾向，不產生買賣指令。門檻是為個人儀表板提供一致、
+ * 可解釋的觀察尺度，不是統計預測模型。
+ */
+function build_market_compass(array $nominalPoints): ?array
+{
+    if (count($nominalPoints) < 2) {
+        return null;
+    }
+    $year = (int) date('Y');
+    $realPoints = fetch_treasury_real_10y_year($year);
+    if (count($realPoints) < 30) {
+        $realPoints = array_merge(fetch_treasury_real_10y_year($year - 1), $realPoints);
+        usort($realPoints, static fn(array $a, array $b): int => strcmp($a['date'], $b['date']));
+    }
+    if (count($realPoints) < 2) {
+        return null;
+    }
+
+    $nCount = count($nominalPoints);
+    $rCount = count($realPoints);
+    $nominal = $nominalPoints[$nCount - 1];
+    $nominalMonth = $nominalPoints[max(0, $nCount - 23)];
+    $real = $realPoints[$rCount - 1];
+    $realMonth = $realPoints[max(0, $rCount - 23)];
+    $nominalChangeBp = round(($nominal['value'] - $nominalMonth['value']) * 100, 1);
+    $realChangeBp = round(($real['value'] - $realMonth['value']) * 100, 1);
+    $curve = round($nominal['value'] - $nominal['twoYear'], 2);
+    $breakeven = round($nominal['value'] - $real['value'], 2);
+
+    $fundingState = ($nominal['value'] >= 4.5 || $nominalChangeBp >= 15) ? 'caution'
+        : ($nominalChangeBp <= -15 ? 'supportive' : 'neutral');
+    $realState = ($real['value'] >= 2.0 || $realChangeBp >= 10) ? 'caution'
+        : ($realChangeBp <= -10 ? 'supportive' : 'neutral');
+    $curveState = $curve < 0 ? 'caution' : ($curve >= 0.25 ? 'supportive' : 'neutral');
+    $inflationState = $breakeven >= 2.5 ? 'caution' : ($breakeven < 2.0 ? 'supportive' : 'neutral');
+
+    $signals = [
+        [
+            'key' => 'funding', 'title' => '長期資金成本', 'value' => number_format($nominal['value'], 2) . '%',
+            'state' => $fundingState,
+            'label' => $fundingState === 'caution' ? '偏高' : ($fundingState === 'supportive' ? '下降中' : '平穩'),
+            'detail' => '近月 ' . signed_bp($nominalChangeBp) . '；殖利率越高，股票與長債估值壓力通常越大。',
+        ],
+        [
+            'key' => 'real', 'title' => '實質利率壓力', 'value' => number_format($real['value'], 2) . '%',
+            'state' => $realState,
+            'label' => $realState === 'caution' ? '估值承壓' : ($realState === 'supportive' ? '壓力減輕' : '中性'),
+            'detail' => '近月 ' . signed_bp($realChangeBp) . '；科技、機器人等成長資產對此較敏感。',
+        ],
+        [
+            'key' => 'curve', 'title' => '景氣曲線 10Y−2Y', 'value' => signed_pct($curve),
+            'state' => $curveState,
+            'label' => $curve < 0 ? '仍倒掛' : ($curve >= 0.25 ? '正斜率' : '偏平'),
+            'detail' => '正值代表長債殖利率高於短債；曲線方向需搭配景氣與信用風險解讀。',
+        ],
+        [
+            'key' => 'inflation', 'title' => '10 年通膨預期', 'value' => number_format($breakeven, 2) . '%',
+            'state' => $inflationState,
+            'label' => $inflationState === 'caution' ? '偏熱' : ($inflationState === 'supportive' ? '偏低' : '溫和'),
+            'detail' => '以名目殖利率減實質殖利率估算；偏高時通常不利長天期債券。',
+        ],
+    ];
+
+    $assetViews = [
+        market_asset_view('台股／0050', [$fundingState, $realState], '留意外資與電子股估值；以定期投入取代單日追價。'),
+        market_asset_view('科技／機器人成長基金', [$realState, $fundingState], '對實質利率最敏感，利率偏高時波動通常較大。'),
+        market_asset_view('債券／房貸收益基金', [$fundingState, $inflationState], '殖利率偏高壓抑價格，但新投資收益率也會提高。'),
+        market_asset_view('現金部位', [opposite_state($fundingState)], '利率偏高時保留現金的機會成本較低，可作為再平衡彈藥。'),
+    ];
+
+    return [
+        'date' => min($nominal['date'], $real['date']),
+        'signals' => $signals,
+        'assetViews' => $assetViews,
+        'disclaimer' => '依公開利率資料判讀環境傾向，非報酬預測或買賣建議。',
+    ];
+}
+
+function signed_bp(float $value): string
+{
+    return ($value > 0 ? '+' : '') . number_format($value, 1) . ' bp';
+}
+
+function signed_pct(float $value): string
+{
+    return ($value > 0 ? '+' : '') . number_format($value, 2) . '%';
+}
+
+function opposite_state(string $state): string
+{
+    return $state === 'caution' ? 'supportive' : ($state === 'supportive' ? 'caution' : 'neutral');
+}
+
+function market_asset_view(string $name, array $states, string $detail): array
+{
+    $score = 0;
+    foreach ($states as $state) {
+        $score += $state === 'supportive' ? 1 : ($state === 'caution' ? -1 : 0);
+    }
+    $state = $score > 0 ? 'supportive' : ($score < 0 ? 'caution' : 'neutral');
+    return [
+        'name' => $name,
+        'state' => $state,
+        'label' => $state === 'supportive' ? '環境較有利' : ($state === 'caution' ? '環境偏逆風' : '環境中性'),
+        'detail' => $detail,
+    ];
 }
 
 function fetch_us10y_news(): array

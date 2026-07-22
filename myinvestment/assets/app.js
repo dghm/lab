@@ -102,6 +102,33 @@ function renderMacro(data) {
             <span class="macro-news-meta"><span>${escapeHtml(item.source)}</span><span>${escapeHtml(date)}</span></span>
         </a>`;
     }).join('') : '<p class="macro-error">近期沒有取得相關新聞。</p>';
+    renderMarketCompass(data.compass);
+}
+
+function renderMarketCompass(compass) {
+    const signalsEl = document.getElementById('compassSignals');
+    const assetsEl = document.getElementById('compassAssets');
+    if (!compass || !Array.isArray(compass.signals)) {
+        signalsEl.innerHTML = '<p class="macro-error">羅盤資料暫時無法取得。</p>';
+        assetsEl.innerHTML = '';
+        return;
+    }
+    document.getElementById('compassDate').textContent = `資料日 ${compass.date}`;
+    signalsEl.innerHTML = compass.signals.map(signal => `
+        <article class="compass-signal">
+            <div class="compass-signal-top">
+                <div><h4>${escapeHtml(signal.title)}</h4><strong>${escapeHtml(signal.value)}</strong></div>
+                <span class="compass-state ${escapeHtml(signal.state)}">${escapeHtml(signal.label)}</span>
+            </div>
+            <p class="compass-detail">${escapeHtml(signal.detail)}</p>
+        </article>`).join('');
+    assetsEl.innerHTML = (compass.assetViews || []).map(asset => `
+        <article class="compass-asset">
+            <strong>${escapeHtml(asset.name)}</strong>
+            <span class="compass-state ${escapeHtml(asset.state)}">${escapeHtml(asset.label)}</span>
+            <p>${escapeHtml(asset.detail)}</p>
+        </article>`).join('');
+    document.getElementById('compassDisclaimer').textContent = compass.disclaimer || '';
 }
 
 function renderSummary(s) {
