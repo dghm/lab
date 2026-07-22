@@ -185,7 +185,7 @@ function fetch_fund_navs(array $isins): array
 
 /**
  * 財經宏觀：美國 10 年期公債殖利率與相關新聞。
- * 殖利率採 FRED DGS10（日資料，來源為聯準會 H.15）；新聞只保留 Google News RSS
+ * 殖利率採美國財政部 Daily Treasury Par Yield Curve Rates；新聞只保留 Google News RSS
  * 的標題、來源、日期與連結。結果以暫存檔快取 30 分鐘，避免拖慢首頁。
  */
 function fetch_macro_dashboard(): array
@@ -203,8 +203,8 @@ function fetch_macro_dashboard(): array
     $result = [
         'yield' => fetch_us10y_yield(),
         'news' => fetch_us10y_news(),
-        'source' => 'FRED DGS10 / Federal Reserve H.15',
-        'sourceUrl' => 'https://fred.stlouisfed.org/series/DGS10',
+        'source' => 'U.S. Treasury Daily Par Yield Curve Rates',
+        'sourceUrl' => 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates',
         'fetchedAt' => date(DATE_ATOM),
         'cached' => false,
     ];
@@ -220,23 +220,15 @@ function fetch_macro_dashboard(): array
 
 function fetch_us10y_yield(): ?array
 {
-    // 限制近四個月，避免下載完整歷史資料在共享主機上超過 cURL 逾時。
-    $start = date('Y-m-d', strtotime('-4 months'));
-    $csv = http_get('https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=' . rawurlencode($start));
-    if ($csv === null) {
-        return null;
-    }
-    $points = [];
-    foreach (preg_split('/\R/', trim($csv)) as $line) {
-        $cols = str_getcsv($line);
-        if (count($cols) < 2 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $cols[0]) || !is_numeric($cols[1])) {
-            continue;
-        }
-        $points[] = ['date' => $cols[0], 'value' => (float) $cols[1]];
+    $year = (int) date('Y');
+    $points = fetch_treasury_10y_year($year);
+    if (count($points) < 30) {
+        $points = array_merge(fetch_treasury_10y_year($year - 1), $points);
     }
     if (count($points) < 2) {
         return null;
     }
+    usort($points, static fn(array $a, array $b): int => strcmp($a['date'], $b['date']));
 
     $count = count($points);
     $latest = $points[$count - 1];
@@ -249,6 +241,39 @@ function fetch_us10y_yield(): ?array
         'monthBp' => $changeBp($points[max(0, $count - 23)]['value']),
         'points' => array_slice($points, -30),
     ];
+}
+
+function fetch_treasury_10y_year(int $year): array
+{
+    $url = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
+        . "daily-treasury-rates.csv/{$year}/all?type=daily_treasury_yield_curve"
+        . "&field_tdr_date_value={$year}&page&_format=csv";
+    $csv = http_get($url);
+    if ($csv === null) {
+        return [];
+    }
+
+    $lines = preg_split('/\R/', trim($csv));
+    $header = str_getcsv(array_shift($lines));
+    $dateIndex = array_search('Date', $header, true);
+    $tenYearIndex = array_search('10 Yr', $header, true);
+    if ($dateIndex === false || $tenYearIndex === false) {
+        return [];
+    }
+
+    $points = [];
+    foreach ($lines as $line) {
+        $cols = str_getcsv($line);
+        if (!isset($cols[$dateIndex], $cols[$tenYearIndex]) || !is_numeric($cols[$tenYearIndex])) {
+            continue;
+        }
+        $date = DateTime::createFromFormat('m/d/Y', $cols[$dateIndex]);
+        if ($date === false) {
+            continue;
+        }
+        $points[] = ['date' => $date->format('Y-m-d'), 'value' => (float) $cols[$tenYearIndex]];
+    }
+    return $points;
 }
 
 function fetch_us10y_news(): array

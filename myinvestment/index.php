@@ -39,7 +39,7 @@
             <h2 id="macroTitle">財經宏觀</h2>
             <p class="muted">觀察影響資產定價的市場基準</p>
         </div>
-        <a id="macroSource" class="macro-source" href="https://fred.stlouisfed.org/series/DGS10" target="_blank" rel="noopener">FRED 官方資料 ↗</a>
+        <a id="macroSource" class="macro-source" href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates" target="_blank" rel="noopener">美國財政部資料 ↗</a>
     </div>
     <div class="macro-grid">
         <article class="macro-yield-card">
