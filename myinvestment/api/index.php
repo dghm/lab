@@ -13,6 +13,9 @@
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/fetchers.php';
 
+// Bluehost 預設使用 UTC；所有介面時間與日期計算統一採台北時區。
+date_default_timezone_set('Asia/Taipei');
+
 $action = $_GET['action'] ?? '';
 $body   = json_decode(file_get_contents('php://input'), true) ?: [];
 
