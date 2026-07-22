@@ -220,7 +220,9 @@ function fetch_macro_dashboard(): array
 
 function fetch_us10y_yield(): ?array
 {
-    $csv = http_get('https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10');
+    // 限制近四個月，避免下載完整歷史資料在共享主機上超過 cURL 逾時。
+    $start = date('Y-m-d', strtotime('-4 months'));
+    $csv = http_get('https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10&cosd=' . rawurlencode($start));
     if ($csv === null) {
         return null;
     }
