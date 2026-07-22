@@ -33,6 +33,36 @@
 <div id="alerts" class="alerts"></div>
 <div id="warnings" class="warnings"></div>
 
+<section class="macro-section" aria-labelledby="macroTitle">
+    <div class="section-head macro-head">
+        <div>
+            <h2 id="macroTitle">財經宏觀</h2>
+            <p class="muted">觀察影響資產定價的市場基準</p>
+        </div>
+        <a id="macroSource" class="macro-source" href="https://fred.stlouisfed.org/series/DGS10" target="_blank" rel="noopener">FRED 官方資料 ↗</a>
+    </div>
+    <div class="macro-grid">
+        <article class="macro-yield-card">
+            <div class="macro-label">美債 10 年期殖利率</div>
+            <div class="macro-yield-row">
+                <strong id="us10yValue">—</strong>
+                <span id="us10yDate" class="muted"></span>
+            </div>
+            <div class="macro-changes">
+                <div><span>日變化</span><strong id="us10yDay">—</strong></div>
+                <div><span>週變化</span><strong id="us10yWeek">—</strong></div>
+                <div><span>月變化</span><strong id="us10yMonth">—</strong></div>
+            </div>
+            <div class="macro-chart-wrap"><canvas id="us10yChart"></canvas></div>
+            <p class="macro-note">殖利率上升通常代表折現率與借貸成本提高；下降則通常有利於債券價格與長久期資產估值。</p>
+        </article>
+        <article class="macro-news-card">
+            <h3>近期相關新聞</h3>
+            <div id="macroNews" class="macro-news-list"><p class="muted">載入中…</p></div>
+        </article>
+    </div>
+</section>
+
 <section class="charts">
     <div class="chart-box">
         <h3>依股債（資產屬性）</h3>

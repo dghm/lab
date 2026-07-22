@@ -24,6 +24,7 @@ try {
         case 'targets_get':  json_out(['targets' => get_targets()]); break;
         case 'targets_save': json_out(save_targets($body['targets'] ?? [])); break;
         case 'summary':      json_out(build_summary()); break;
+        case 'macro':        json_out(fetch_macro_dashboard()); break;
         case 'txn_list':   json_out(['txns' => list_txns((int)($_GET['holding_id'] ?? 0))]); break;
         case 'txn_save':   json_out(save_txn($body)); break;
         case 'txn_delete': json_out(delete_txn((int)($body['id'] ?? 0))); break;

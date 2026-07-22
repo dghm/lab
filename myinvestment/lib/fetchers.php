@@ -182,3 +182,105 @@ function fetch_fund_navs(array $isins): array
     }
     return $out;
 }
+
+/**
+ * 財經宏觀：美國 10 年期公債殖利率與相關新聞。
+ * 殖利率採 FRED DGS10（日資料，來源為聯準會 H.15）；新聞只保留 Google News RSS
+ * 的標題、來源、日期與連結。結果以暫存檔快取 30 分鐘，避免拖慢首頁。
+ */
+function fetch_macro_dashboard(): array
+{
+    $cacheFile = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+        . 'myinvestment-macro-cache.json';
+    if (is_file($cacheFile) && time() - filemtime($cacheFile) <= 1800) {
+        $cached = json_decode((string) file_get_contents($cacheFile), true);
+        if (is_array($cached) && isset($cached['yield'])) {
+            $cached['cached'] = true;
+            return $cached;
+        }
+    }
+
+    $result = [
+        'yield' => fetch_us10y_yield(),
+        'news' => fetch_us10y_news(),
+        'source' => 'FRED DGS10 / Federal Reserve H.15',
+        'sourceUrl' => 'https://fred.stlouisfed.org/series/DGS10',
+        'fetchedAt' => date(DATE_ATOM),
+        'cached' => false,
+    ];
+    if ($result['yield'] !== null) {
+        @file_put_contents(
+            $cacheFile,
+            json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            LOCK_EX
+        );
+    }
+    return $result;
+}
+
+function fetch_us10y_yield(): ?array
+{
+    $csv = http_get('https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10');
+    if ($csv === null) {
+        return null;
+    }
+    $points = [];
+    foreach (preg_split('/\R/', trim($csv)) as $line) {
+        $cols = str_getcsv($line);
+        if (count($cols) < 2 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $cols[0]) || !is_numeric($cols[1])) {
+            continue;
+        }
+        $points[] = ['date' => $cols[0], 'value' => (float) $cols[1]];
+    }
+    if (count($points) < 2) {
+        return null;
+    }
+
+    $count = count($points);
+    $latest = $points[$count - 1];
+    $changeBp = static fn(float $from): float => round(($latest['value'] - $from) * 100, 1);
+    return [
+        'date' => $latest['date'],
+        'value' => $latest['value'],
+        'dayBp' => $changeBp($points[$count - 2]['value']),
+        'weekBp' => $changeBp($points[max(0, $count - 6)]['value']),
+        'monthBp' => $changeBp($points[max(0, $count - 23)]['value']),
+        'points' => array_slice($points, -30),
+    ];
+}
+
+function fetch_us10y_news(): array
+{
+    $query = rawurlencode('美國 10 年期 公債 殖利率 when:14d');
+    $xmlText = http_get("https://news.google.com/rss/search?q={$query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant");
+    if ($xmlText === null || !function_exists('simplexml_load_string')) {
+        return [];
+    }
+    $xml = @simplexml_load_string($xmlText, SimpleXMLElement::class, LIBXML_NOCDATA | LIBXML_NONET);
+    if ($xml === false) {
+        return [];
+    }
+
+    $news = [];
+    foreach ($xml->channel->item as $item) {
+        $link = trim((string) $item->link);
+        if (!str_starts_with($link, 'https://news.google.com/')) {
+            continue;
+        }
+        $source = trim((string) $item->source);
+        $title = trim((string) $item->title);
+        if ($source !== '' && str_ends_with($title, ' - ' . $source)) {
+            $title = substr($title, 0, -strlen(' - ' . $source));
+        }
+        $news[] = [
+            'title' => $title,
+            'source' => $source,
+            'publishedAt' => date(DATE_ATOM, strtotime((string) $item->pubDate)),
+            'url' => $link,
+        ];
+        if (count($news) >= 5) {
+            break;
+        }
+    }
+    return $news;
+}

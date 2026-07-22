@@ -6,6 +6,9 @@ const REG_LABEL = { TW: '台灣', US: '美國', GLOBAL: '全球', OTHER: '其他
 const ASSET_LABEL = { equity: '股票', bond: '債券', balanced: '平衡', cash: '現金', other: '其他' };
 const DIM_LABEL = { category: '類別', currency: '幣別', region: '地區', asset: '股債' };
 const fmt = n => (n ?? 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
+}[ch]));
 const charts = {};
 let HOLDINGS = [];
 let ROWS = [];
@@ -36,9 +39,69 @@ async function refresh() {
         const s = await api('summary');
         if (s.error) { alert('錯誤：' + s.error); return; }
         renderSummary(s);
+        loadMacro();
     } finally {
         btn.disabled = false; btn.textContent = '↻ 重新抓價';
     }
+}
+
+async function loadMacro() {
+    try {
+        const data = await api('macro');
+        renderMacro(data);
+    } catch (_) {
+        document.getElementById('macroNews').innerHTML = '<p class="macro-error">宏觀資料暫時無法載入，不影響資產數據。</p>';
+    }
+}
+
+function renderMacro(data) {
+    const y = data?.yield;
+    if (!y) {
+        document.getElementById('us10yValue').textContent = '—';
+        document.getElementById('macroNews').innerHTML = '<p class="macro-error">殖利率資料暫時無法取得。</p>';
+        return;
+    }
+    document.getElementById('us10yValue').textContent = `${(+y.value).toFixed(2)}%`;
+    document.getElementById('us10yDate').textContent = `資料日 ${y.date}`;
+    const setChange = (id, value) => {
+        const el = document.getElementById(id);
+        const n = +value;
+        el.textContent = `${n > 0 ? '+' : ''}${n.toFixed(1)} bp`;
+        el.className = n > 0 ? 'up' : n < 0 ? 'down' : '';
+    };
+    setChange('us10yDay', y.dayBp);
+    setChange('us10yWeek', y.weekBp);
+    setChange('us10yMonth', y.monthBp);
+
+    const ctx = document.getElementById('us10yChart');
+    if (charts.us10y) charts.us10y.destroy();
+    charts.us10y = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: y.points.map(p => p.date.slice(5)),
+            datasets: [{ data: y.points.map(p => p.value), borderColor: '#2f6df0',
+                backgroundColor: 'rgba(47,109,240,.08)', fill: true, borderWidth: 2,
+                pointRadius: 0, tension: .25 }],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { display: false },
+                y: { ticks: { callback: value => `${value}%`, font: { size: 10 } }, grid: { color: '#eef0f4' } },
+            },
+        },
+    });
+
+    const news = Array.isArray(data.news) ? data.news : [];
+    document.getElementById('macroNews').innerHTML = news.length ? news.map(item => {
+        const url = String(item.url || '').startsWith('https://news.google.com/') ? item.url : '#';
+        const date = item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('zh-TW') : '';
+        return `<a class="macro-news-item" href="${escapeHtml(url)}" target="_blank" rel="noopener">
+            <strong>${escapeHtml(item.title)}</strong>
+            <span class="macro-news-meta"><span>${escapeHtml(item.source)}</span><span>${escapeHtml(date)}</span></span>
+        </a>`;
+    }).join('') : '<p class="macro-error">近期沒有取得相關新聞。</p>';
 }
 
 function renderSummary(s) {
