@@ -81,8 +81,8 @@ jobs:
           set -eu
           status=$(curl --silent --show-error --location --retry 3 \
             --output /dev/null --write-out '%{http_code}' "$DEPLOY_URL")
-          test "$status" = "200" || {
-            echo "Taiwan stock tracker returned HTTP $status" >&2
-            exit 1
-          }
-          echo "Taiwan stock tracker is reachable at $DEPLOY_URL"
+          case "$status" in
+            200) echo "Taiwan stock tracker is publicly reachable at $DEPLOY_URL" ;;
+            401) echo "Taiwan stock tracker is reachable and password protected at $DEPLOY_URL" ;;
+            *) echo "Taiwan stock tracker returned HTTP $status" >&2; exit 1 ;;
+          esac
