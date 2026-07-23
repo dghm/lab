@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - "index.html"
+      - "icon-lab.svg"
       - "style.css"
       - "theme.js"
       - ".github/workflows/deploy-lab-dashboard.yml"
@@ -66,7 +67,7 @@ jobs:
           set -eu
           RSYNC_SSH="ssh -p $DEPLOY_PORT"
           rsync -az --checksum --itemize-changes -e "$RSYNC_SSH" \
-            index.html style.css theme.js \
+            index.html icon-lab.svg style.css theme.js \
             "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
 
       - name: Verify protected dashboard
