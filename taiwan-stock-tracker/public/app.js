@@ -1,5 +1,10 @@
 (function () {
-  var API_URL = "/.netlify/functions/market?dataset=";
+  var NETLIFY_API_ORIGIN = "https://dghm-taiwan-stock-tracker.netlify.app";
+  var useRemoteApi =
+    window.location.hostname === "lab.dghm.tw" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "localhost";
+  var API_URL = (useRemoteApi ? NETLIFY_API_ORIGIN : "") + "/.netlify/functions/market?dataset=";
   var TWSE_URL = API_URL + "daily";
   var BWIBBU_URL = API_URL + "valuation";
   var REVENUE_URL = API_URL + "revenue";
