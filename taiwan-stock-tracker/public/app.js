@@ -1,9 +1,10 @@
 (function () {
-  var TWSE_URL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL";
-  var BWIBBU_URL = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL";
-  var REVENUE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap05_L";
-  var BALANCE_URL = "https://openapi.twse.com.tw/v1/opendata/t187ap07_L";
-  var CONCENTRATION_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5";
+  var API_URL = "/.netlify/functions/market?dataset=";
+  var TWSE_URL = API_URL + "daily";
+  var BWIBBU_URL = API_URL + "valuation";
+  var REVENUE_URL = API_URL + "revenue";
+  var BALANCE_URL = API_URL + "balance";
+  var CONCENTRATION_URL = API_URL + "concentration";
 
   var CACHE_KEY = "tw-stock-cache-v1";
   var WATCHLIST_KEY = "tw-stock-watchlist-v1";
@@ -64,6 +65,15 @@
   function setStatus(el, text, isError) {
     el.textContent = text || "";
     el.classList.toggle("error", !!isError);
+  }
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
   function parseRecord(item) {
@@ -313,9 +323,9 @@
   function buildDetailRow(label, value) {
     return (
       '<div class="detail-row"><span class="detail-label">' +
-      label +
+      escapeHtml(label) +
       '</span><span class="detail-value">' +
-      (value === undefined || value === null || value === "" ? "—" : value) +
+      (value === undefined || value === null || value === "" ? "—" : escapeHtml(value)) +
       "</span></div>"
     );
   }
@@ -383,7 +393,7 @@
         var holders = findField(tier, "人數") || "";
         var pct = findField(tier, "比例") || "";
         html +=
-          "<tr><td>" + level + "</td><td>" + Number(holders || 0).toLocaleString("zh-TW") + "</td><td>" + pct + "%</td></tr>";
+          "<tr><td>" + escapeHtml(level) + "</td><td>" + escapeHtml(Number(holders || 0).toLocaleString("zh-TW")) + "</td><td>" + escapeHtml(pct) + "%</td></tr>";
       });
       html += "</tbody></table>";
     } else {
@@ -394,19 +404,19 @@
     html += '<div class="detail-links">';
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
-      code +
+      encodeURIComponent(code) +
       '.TW">Yahoo奇摩股市 — 個股總覽</a>';
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
-      code +
+      encodeURIComponent(code) +
       '.TW/news">Yahoo奇摩股市 — 相關新聞</a>';
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://goodinfo.tw/tw/EquityDistributionClassHis.asp?STOCK_ID=' +
-      code +
+      encodeURIComponent(code) +
       '">Goodinfo — 股權分散表</a>';
     html +=
       '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://mops.twse.com.tw/mops/web/t05st03?TYPEK=&co_id=' +
-      code +
+      encodeURIComponent(code) +
       '">公開資訊觀測站 — 公司基本資料／董監持股</a>';
     html += "</div>";
 
@@ -425,11 +435,11 @@
       .catch(function (err) {
         modalBody.innerHTML =
           '<div class="status-line error">無法載入基本面資料：' +
-          err.message +
+          escapeHtml(err.message) +
           "</div>" +
           '<div class="detail-links">' +
           '<a class="btn btn-sm" target="_blank" rel="noopener" href="https://tw.stock.yahoo.com/quote/' +
-          code +
+          encodeURIComponent(code) +
           '.TW">Yahoo奇摩股市 — 個股總覽</a>' +
           "</div>";
       });
@@ -476,8 +486,14 @@
 
       var meta = document.createElement("div");
       meta.className = "meta";
-      meta.innerHTML =
-        '<span class="code">' + rec.code + '</span><span class="name">' + rec.name + "</span>";
+      var codeSpan = document.createElement("span");
+      codeSpan.className = "code";
+      codeSpan.textContent = rec.code;
+      var nameSpan = document.createElement("span");
+      nameSpan.className = "name";
+      nameSpan.textContent = rec.name;
+      meta.appendChild(codeSpan);
+      meta.appendChild(nameSpan);
 
       var addBtn = document.createElement("button");
       addBtn.className = "btn btn-sm btn-primary";
@@ -512,7 +528,7 @@
       var tr = document.createElement("tr");
 
       if (!rec) {
-        tr.innerHTML = '<td>' + code + '</td><td colspan="7">查無資料</td>';
+        tr.innerHTML = '<td>' + escapeHtml(code) + '</td><td colspan="7">查無資料</td>';
         var td = document.createElement("td");
         appendRemoveBtn(td, code);
         tr.appendChild(td);
@@ -523,14 +539,14 @@
       var changeClass = rec.change > 0 ? "price-up" : rec.change < 0 ? "price-down" : "";
 
       tr.innerHTML =
-        "<td>" + rec.code + "</td>" +
-        '<td><button class="name-link" title="查看基本面詳細資料">' + rec.name + "</button></td>" +
-        '<td class="' + changeClass + '">' + rec.close + "</td>" +
-        '<td class="' + changeClass + '">' + formatChange(rec) + "</td>" +
-        "<td>" + rec.open + "</td>" +
-        "<td>" + rec.high + "</td>" +
-        "<td>" + rec.low + "</td>" +
-        "<td>" + Number(rec.volume).toLocaleString("zh-TW") + "</td>";
+        "<td>" + escapeHtml(rec.code) + "</td>" +
+        '<td><button class="name-link" title="查看基本面詳細資料">' + escapeHtml(rec.name) + "</button></td>" +
+        '<td class="' + changeClass + '">' + escapeHtml(rec.close) + "</td>" +
+        '<td class="' + changeClass + '">' + escapeHtml(formatChange(rec)) + "</td>" +
+        "<td>" + escapeHtml(rec.open) + "</td>" +
+        "<td>" + escapeHtml(rec.high) + "</td>" +
+        "<td>" + escapeHtml(rec.low) + "</td>" +
+        "<td>" + escapeHtml(Number(rec.volume).toLocaleString("zh-TW")) + "</td>";
 
       tr.querySelector(".name-link").addEventListener("click", function () {
         openDetailModal(rec.code, rec.name);
