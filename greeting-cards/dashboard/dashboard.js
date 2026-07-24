@@ -33,6 +33,10 @@ function getCardUrl(card) {
   return `../${card.cardPath}`;
 }
 
+function toCssUrl(path) {
+  return `url("${path.replace(/["\\]/g, "\\$&")}")`;
+}
+
 function selectCard(card, button) {
   selectedCardId = card.id;
 
@@ -54,6 +58,7 @@ function selectCard(card, button) {
   openFullCard.hidden = false;
   previewPlaceholder.hidden = true;
   deviceFrame.hidden = false;
+  previewStage.style.setProperty("--glow-image", toCssUrl(`../${card.previewImage}`));
   previewStage.classList.remove("is-empty");
 }
 

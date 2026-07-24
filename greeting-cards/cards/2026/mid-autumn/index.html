@@ -25,9 +25,55 @@
       justify-content: center;
       background: #04070f;
       padding: 24px;
+      overflow: clip;
+    }
+
+    /* ── 環境光：卡片成像放大模糊後鋪在後方，讓顏色溢到四周黑場 ── */
+    .card-stage {
+      position: relative;
+      display: flex;
+      width: min(100%, 1071px);
+    }
+
+    .ambient-glow {
+      position: absolute;
+      z-index: 0;
+      inset: -15%;
+      pointer-events: none;
+      animation: ambientIn 2.2s ease-out both;
+    }
+
+    .ambient-glow span {
+      position: absolute;
+      inset: 0;
+      display: block;
+      background: url("preview-final.jpg") center / cover no-repeat;
+      filter: blur(72px) saturate(1.9) brightness(1.1);
+      animation: ambientDrift 16s ease-in-out infinite alternate;
+    }
+
+    /* 暗角：把環境光往卡片周圍收，避免整個視窗被染色 */
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: 0;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse 60% 58% at 50% 50%, transparent 0%, rgba(4, 7, 15, .55) 62%, #04070f 100%);
+    }
+
+    @keyframes ambientIn {
+      from { opacity: 0; }
+      to { opacity: 0.85; }
+    }
+
+    @keyframes ambientDrift {
+      from { transform: scale(1.01); filter: blur(72px) saturate(1.75) brightness(1.02); }
+      to { transform: scale(1.07); filter: blur(84px) saturate(2) brightness(1.22); }
     }
 
     .card {
+      z-index: 1;
       --w: 1071;
       --h: 506;
       --bg-gradient: radial-gradient(263.72% 94.64% at 16.44% 38.33%, #2A5478 0%, #000317 100%);
@@ -465,6 +511,9 @@
         align-items: stretch;
       }
 
+      .card-stage { display: contents; }
+      .ambient-glow, body::after { display: none; }
+
       .card {
         --w: 390;
         --h: 780;
@@ -589,6 +638,8 @@
   </style>
 </head>
 <body>
+  <div class="card-stage">
+  <div class="ambient-glow" aria-hidden="true"><span></span></div>
   <div class="card" aria-label="中秋賀卡：感謝這段時間的信任與合作，願您闔家平安、月圓事圓。萬能數維有限公司敬賀">
     <div class="bg" aria-hidden="true"></div>
 
@@ -645,6 +696,7 @@
         <path d="M5 19.5V15.5H9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
+  </div>
   </div>
 
   <script>
