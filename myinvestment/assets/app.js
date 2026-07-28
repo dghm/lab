@@ -5,6 +5,12 @@ const CAT_LABEL = { tw_stock: '台股', fund: '海外基金', cash: '現金/存�
 const REG_LABEL = { TW: '台灣', US: '美國', GLOBAL: '全球', OTHER: '其他' };
 const ASSET_LABEL = { equity: '股票', bond: '債券', balanced: '平衡', cash: '現金', other: '其他' };
 const DIM_LABEL = { category: '類別', currency: '幣別', region: '地區', asset: '股債' };
+// 操作按鈕圖示（Lucide，24×24 viewBox，stroke=currentColor 隨按鈕色）
+const ICONS = {
+    txn: '<svg class="ico" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v2"/><path d="M21.34 15.664a1 1 0 1 0-3.004-3.004l-5.01 5.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z"/><path d="M8 22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>',
+    edit: '<svg class="ico" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 10.27 7 3.34"/><path d="m11 13.73-4 6.93"/><path d="M12 22v-2"/><path d="M12 2v2"/><path d="M14 12h8"/><path d="m17 20.66-1-1.73"/><path d="m17 3.34-1 1.73"/><path d="M2 12h2"/><path d="m20.66 17-1.73-1"/><path d="m20.66 7-1.73 1"/><path d="m3.34 17 1.73-1"/><path d="m3.34 7 1.73 1"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="12" r="8"/></svg>',
+    del: '<svg class="ico" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+};
 const fmt = n => (n ?? 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
@@ -232,9 +238,9 @@ function renderHoldings(rows) {
             <td class="num ${plClass(r.pl)}">${r.returnPct != null ? r.returnPct + '%' : '—'}</td>
             <td>${stopBadge(r)}</td>
             <td class="ops">
-                <button class="icon-btn txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}" data-category="${r.category}" data-ticker="${r.ticker || ''}" title="交易記錄">🧾</button>
-                <button class="icon-btn edit" data-id="${r.id}" title="編輯">✎</button>
-                <button class="icon-btn del" data-id="${r.id}" title="刪除">🗑</button>
+                <button class="icon-btn txn" data-id="${r.id}" data-name="${r.name}" data-currency="${r.currency}" data-category="${r.category}" data-ticker="${r.ticker || ''}" title="交易記錄">${ICONS.txn}</button>
+                <button class="icon-btn edit" data-id="${r.id}" title="編輯">${ICONS.edit}</button>
+                <button class="icon-btn del" data-id="${r.id}" title="刪除">${ICONS.del}</button>
             </td>
         </tr>`;
     }).join('');
