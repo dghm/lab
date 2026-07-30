@@ -90,6 +90,9 @@ main { max-width: 1320px; margin: 0 auto; padding: 3.5rem 1.5rem 2.5rem; }
 .todo-block ul { margin: 0; padding: 0 .9rem .85rem; border-top: 1px solid var(--border); list-style: none; }
 .todo-block li { position: relative; margin-top: .48rem; padding-left: 1rem; font-size: .83rem; line-height: 1.45; }
 .todo-block li::before { content: ""; position: absolute; left: 0; top: .52em; width: .37rem; height: .37rem; border: 1.5px solid var(--accent); border-radius: 50%; }
+.todo-block.todo-empty { display: flex; align-items: center; gap: .65rem; padding: .78rem .9rem; color: var(--muted); font-size: .76rem; font-weight: 650; }
+.todo-block.todo-empty strong { display: inline-grid; place-items: center; min-width: 1.45rem; height: 1.45rem; padding: 0 .35rem; color: var(--muted); background: var(--surface); border-radius: 999px; font-size: .7rem; }
+.todo-block.todo-empty em { margin-left: auto; font-style: normal; font-weight: 500; opacity: .8; }
 .card-actions { display: flex; align-items: center; gap: 1rem; margin-top: auto; padding-top: 1.1rem; }
 .card-actions a { color: var(--accent); font-size: .8rem; font-weight: 650; text-decoration: none; }
 .card-actions .primary { padding: .55rem .78rem; color: #fff; background: var(--accent); border-radius: 8px; }
