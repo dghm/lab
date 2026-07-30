@@ -27,8 +27,10 @@ greeting-cards/
 │       └── mid-autumn/
 │           ├── index.html
 │           └── *.svg
+├── shared/          # 平台共用層（base.css / replay.js / 新卡骨架 / README）
 ├── data/
-│   └── cards.json
+│   ├── cards.json
+│   └── greetings-2026-christmas.json   # 個人化祝賀（範例；正式由 Airtable 產生器輸出）
 ├── public-root/
 │   └── .htaccess     # 公開網域 HTTPS 與短網址規則
 ├── .gitignore
@@ -164,3 +166,19 @@ https://cards.dghm.tw/m26
 7. 規劃並記錄部署流程。
 
 第一階段不包含客戶個人化、完整 CMS、資料庫、權限系統或進階流量統計。
+
+## 待辦（Roadmap）
+
+已完成：
+
+- [x] 資料模型加入 `campaign`（檔期）與 `personalized` 欄位（cards.json v2）
+- [x] Dashboard 依檔期分組、公版預覽與個人化逐客戶清單兩種模式、`#card=<id>` 深連結
+- [x] 建立 `shared/` 共用層（base.css / replay.js / 新卡骨架）
+
+待辦：
+
+- [ ] **聖誕個人化產生器（第四步，主要工作）**：以 Airtable「聖誕祝賀」表為資料源，
+  讀表後替每位客戶產生 `cards/2026/christmas/<token>/` 靜態頁、配發不可猜短碼與 QR，
+  並輸出取代 `data/greetings-2026-christmas.json` 的範例種子資料。逐客戶頁一律 `noindex`。
+- [ ] 建立 2026 聖誕賀卡的共用視覺（`cards/2026/christmas/`，供個人化頁套用），以 `shared/card-starter.html` 起手。
+- [ ] 將線上的 `cards/2026/mid-autumn/` 遷移改吃 `shared/`（需先確認 `shared/` 的正式部署路徑，避免動到線上卡片）。
