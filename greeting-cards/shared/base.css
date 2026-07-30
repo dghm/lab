@@ -1,0 +1,35 @@
+/* DGHM 賀卡平台 · 共用基底
+ *
+ * 只放「跨卡通用、與特定節慶無關」的機制：reset、減少動態偏好、重播。
+ * 各張賀卡的視覺、版面與進場動畫請留在該卡自己的樣式，不要放進這裡
+ *（平台原則：能力共用，視覺與動畫各卡自由）。
+ */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 重播機制：卡片加上 .is-replaying 會清掉內部所有動畫；
+ * 移除該 class（配合 reflow）即可讓進場動畫重新播放。
+ * 搭配 shared/replay.js 使用。 */
+.card.is-replaying *,
+.card.is-replaying *::before,
+.card.is-replaying *::after {
+  animation: none !important;
+}
+
+/* 尊重使用者「減少動態」的系統偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

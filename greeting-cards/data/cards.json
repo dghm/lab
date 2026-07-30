@@ -1,10 +1,31 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "cards": [
+    {
+      "id": "2026-christmas",
+      "year": 2026,
+      "campaign": 2026,
+      "festival": "christmas",
+      "personalized": true,
+      "status": "draft",
+      "title": "2026 聖誕賀卡",
+      "message": "感謝這一年的同行，祝您與團隊聖誕平安、新年順心。",
+      "signature": "萬能數維有限公司 敬賀",
+      "cardPath": "cards/2026/christmas/",
+      "previewImage": null,
+      "canonicalPath": "/2026/christmas/",
+      "shortCode": "c26",
+      "greetingsPath": "data/greetings-2026-christmas.json",
+      "publicUrl": null,
+      "publishedAt": null,
+      "archivedAt": null
+    },
     {
       "id": "2026-mid-autumn",
       "year": 2026,
+      "campaign": 2026,
       "festival": "mid-autumn",
+      "personalized": false,
       "status": "published",
       "title": "2026 中秋賀卡",
       "message": "感謝這段時間的信任與合作，願您闔家平安、月圓事圓。",
