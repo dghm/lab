@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sample": true,
+  "note": "範例種子資料，供 Dashboard 逐客戶清單展示用。正式資料由 Airtable「聖誕祝賀」表經產生器輸出後覆蓋此檔。客戶名稱皆為虛構。",
+  "campaign": 2026,
+  "festival": "christmas",
+  "baseShortCode": "c26",
+  "greetings": [
+    { "token": "9fk2", "to": "王經理", "org": "宏達精密", "status": "sent", "shortCode": "c26-9fk2", "message": "感謝今年在專案上的全力配合，祝團隊聖誕愉快、新年再創佳績。" },
+    { "token": "3ab7", "to": "陳總", "org": "立群國際", "status": "sent", "shortCode": "c26-3ab7", "message": "謝謝一路以來的信任，願立群國際明年順風順水、業務長紅。" },
+    { "token": "7pq1", "to": "林小姐", "org": "芸采設計", "status": "ready", "shortCode": "c26-7pq1", "message": "合作的每個細節都很愉快，祝芸采設計佳作連連、聖誕平安。" },
+    { "token": "1mzx", "to": "黃執行長", "org": "睿信科技", "status": "ready", "shortCode": "c26-1mzx", "message": "感謝睿信一年來的支持，期待來年攜手把產品做得更好。" },
+    { "token": "", "to": "吳主任", "org": "合順物流", "status": "draft", "shortCode": "", "message": "" },
+    { "token": "", "to": "蔡副理", "org": "雅森文創", "status": "draft", "shortCode": "", "message": "" }
+  ]
+}

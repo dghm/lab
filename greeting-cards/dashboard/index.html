@@ -22,11 +22,12 @@
       <div>
         <p class="eyebrow">Greeting Cards</p>
         <h1 id="page-title">賀卡管理</h1>
-        <p class="intro">從左側選擇賀卡，在右側確認桌機與手機呈現效果。</p>
+        <p class="intro">先選檔期，再選卡。一個檔期＝中秋→聖誕→隔年春節；公版看預覽，個人化看逐客戶清單。</p>
       </div>
       <div class="summary" aria-label="賀卡統計">
-        <div><strong id="card-count">—</strong><span>全部賀卡</span></div>
-        <div><strong id="published-count">—</strong><span>已發布</span></div>
+        <div><strong id="card-count">—</strong><span>賀卡模板</span></div>
+        <div><strong id="published-count">—</strong><span>公開中</span></div>
+        <div class="is-personal"><strong id="personal-count">—</strong><span>個人化版本</span></div>
       </div>
     </section>
 
@@ -39,42 +40,80 @@
           </div>
           <p id="catalog-status" class="catalog-status" role="status">正在讀取…</p>
         </div>
+
+        <div id="campaign-switch" class="campaign-switch" role="tablist" aria-label="選擇計畫檔期"></div>
+
         <div id="card-list" class="card-list" aria-live="polite"></div>
       </section>
 
-      <section class="preview-panel" aria-labelledby="preview-title">
-        <div class="preview-heading">
-          <div>
-            <p class="section-label">Live preview</p>
-            <h2 id="preview-title">選擇一張賀卡</h2>
-          </div>
-          <div class="device-switch" aria-label="預覽裝置">
-            <button type="button" class="device-button is-active" data-device="desktop" aria-pressed="true">桌機</button>
-            <button type="button" class="device-button" data-device="mobile" aria-pressed="false">手機</button>
-          </div>
-        </div>
-
-        <div id="preview-stage" class="preview-stage is-empty">
-          <div class="preview-placeholder">
-            <strong>尚未選擇賀卡</strong>
-            <span>從左側清單選擇一張賀卡開始預覽。</span>
-          </div>
-          <div class="ambient-glow" aria-hidden="true"><span></span></div>
-          <div class="device-frame" hidden>
-            <div class="device-browser-bar" aria-hidden="true">
-              <i></i><i></i><i></i>
-              <span id="preview-address"></span>
+      <section class="preview-panel" aria-labelledby="detail-title">
+        <!-- 公版：跨裝置預覽 -->
+        <div id="mode-preview" class="detail-mode">
+          <div class="preview-heading">
+            <div>
+              <p class="section-label">Live preview · 公版</p>
+              <h2 id="detail-title">選擇一張賀卡</h2>
             </div>
-            <iframe id="card-preview" title="賀卡預覽"></iframe>
+            <div class="device-switch" aria-label="預覽裝置">
+              <button type="button" class="device-button is-active" data-device="desktop" aria-pressed="true">桌機</button>
+              <button type="button" class="device-button" data-device="mobile" aria-pressed="false">手機</button>
+            </div>
+          </div>
+
+          <div id="preview-stage" class="preview-stage is-empty">
+            <div class="preview-placeholder">
+              <strong>尚未選擇賀卡</strong>
+              <span>從左側清單選擇一張賀卡開始預覽。</span>
+            </div>
+            <div class="ambient-glow" aria-hidden="true"><span></span></div>
+            <div class="device-frame" hidden>
+              <div class="device-browser-bar" aria-hidden="true">
+                <i></i><i></i><i></i>
+                <span id="preview-address"></span>
+              </div>
+              <iframe id="card-preview" title="賀卡預覽"></iframe>
+            </div>
+          </div>
+
+          <div class="preview-footer">
+            <div>
+              <span id="preview-state" class="preview-state">尚未選擇</span>
+              <span id="preview-url" class="preview-url"></span>
+            </div>
+            <a id="open-full-card" class="text-link" href="#" target="_blank" rel="noopener" hidden>另開完整頁面 ↗</a>
           </div>
         </div>
 
-        <div class="preview-footer">
-          <div>
-            <span id="preview-state" class="preview-state">尚未選擇</span>
-            <span id="preview-url" class="preview-url"></span>
+        <!-- 個人化：逐客戶清單 -->
+        <div id="mode-roster" class="detail-mode" hidden>
+          <div class="preview-heading">
+            <div>
+              <p class="section-label">Personalized roster · 個人化</p>
+              <h2 id="roster-title">逐客戶版本</h2>
+            </div>
           </div>
-          <a id="open-full-card" class="text-link" href="#" target="_blank" rel="noopener" hidden>另開完整頁面 ↗</a>
+
+          <div class="roster-tools">
+            <label class="search">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+              <input id="roster-search" type="text" placeholder="搜尋客戶、公司或短碼…" autocomplete="off">
+            </label>
+            <span class="roster-count" id="roster-count"></span>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>客戶</th><th>祝賀詞</th><th>狀態</th><th>短碼</th></tr>
+              </thead>
+              <tbody id="roster-body"></tbody>
+            </table>
+          </div>
+
+          <div class="roster-footer">
+            <span class="roster-src" id="roster-src"></span>
+            <span id="roster-stat"></span>
+          </div>
         </div>
       </section>
     </div>
@@ -90,11 +129,13 @@
       <button type="button" class="card-select">
         <span class="thumbnail-wrap">
           <img class="card-thumbnail" alt="" loading="lazy">
+          <span class="thumbnail-fallback" aria-hidden="true"></span>
         </span>
         <span class="card-summary">
           <span class="card-topline">
             <span class="status-badge"></span>
-            <span class="card-id"></span>
+            <span class="kind-tag"></span>
+            <span class="cross-tag" hidden>跨年檔期</span>
           </span>
           <span class="festival-label"></span>
           <strong class="card-title"></strong>
@@ -104,7 +145,7 @@
             <span><small>短碼</small><code class="short-code"></code></span>
           </span>
           <span class="card-bottomline">
-            <span class="preview-action">在右側預覽</span>
+            <span class="preview-action"></span>
             <span class="publish-note"></span>
           </span>
         </span>
