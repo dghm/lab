@@ -1,10 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "cards": [
     {
       "id": "2026-mid-autumn",
       "year": 2026,
+      "campaign": 2026,
       "festival": "mid-autumn",
+      "personalized": false,
       "status": "published",
       "title": "2026 中秋賀卡",
       "message": "感謝這段時間的信任與合作，願您闔家平安、月圓事圓。",
