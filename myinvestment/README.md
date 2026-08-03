@@ -13,12 +13,13 @@
 ## 功能
 - 多幣別統一換算 TWD；台股價（TWSE MIS）、USD/TWD 匯率（open.er-api.com）自動抓
 - 四維度圓餅圖：**股債屬性** / 類別 / 幣別 / 地區
+- 每日總資產快照與近 90 天趨勢圖
 - 定期定額自動累加投入（只需偶爾更新單位 / 淨值）
 - 停利監控：每檔可設目標報酬率，達標/接近時於儀表板紅黃旗提醒
 - 再平衡對照表（可對股債、類別、幣別、地區設目標）
 
 ## 升級（已部署 v1 者）
-phpMyAdmin 對 `zjqafhmy_myinvest` 匯入 `db/migrate_b.sql`（只跑一次），再覆蓋上傳程式檔。
+phpMyAdmin 對 `zjqafhmy_myinvest` 依需要匯入對應 migration（`db/migrate_b.sql`、`db/migrate_snapshots.sql`；各跑一次），再覆蓋上傳程式檔。
 既有部位的 `quantity` 即持有單位；現金金額會搬到 `balance`。之後逐筆「編輯」設好屬性、累計投入、定期定額、停利目標。
 
 ## 全新安裝（本機）
@@ -40,5 +41,4 @@ php -S localhost:8000
 
 ## 之後可加
 - 基金淨值自動化（填 `lib/fetchers.php` 的 `fetch_fund_navs`）
-- 每日總值快照 → 資產成長趨勢圖
 - 停利達標每日排程 + 推播通知

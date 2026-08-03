@@ -161,6 +161,7 @@ function build_summary(): array
     $rows = [];
     $totalValue = 0.0; $totalCost = 0.0; $totalPl = 0.0;  // cost/pl 只計有投入的部位
     $warnings = []; $alerts = [];
+    $stopHitCount = 0; $stopNearCount = 0;
 
     foreach ($holdings as $h) {
         $rate = $fx[$h['currency']] ?? 0.0;
@@ -176,10 +177,18 @@ function build_summary(): array
         $row = make_row($h, $nativeValue, $invested, $rate, $prices, $navs);
         $totalValue += $row['value'];
         if ($row['cost'] !== null) { $totalCost += $row['cost']; $totalPl += $row['pl']; }
-        if ($row['stopStatus'] === 'hit')  $alerts[] = "🔴 {$row['name']} 報酬率 {$row['returnPct']}%，已達停利目標 {$row['targetReturn']}%，可考慮贖回。";
-        if ($row['stopStatus'] === 'near') $alerts[] = "🟡 {$row['name']} 報酬率 {$row['returnPct']}%，接近停利目標 {$row['targetReturn']}%。";
+        if ($row['stopStatus'] === 'hit') {
+            $stopHitCount++;
+            $alerts[] = "🔴 {$row['name']} 報酬率 {$row['returnPct']}%，已達停利目標 {$row['targetReturn']}%，可考慮贖回。";
+        }
+        if ($row['stopStatus'] === 'near') {
+            $stopNearCount++;
+            $warnings[] = "{$row['name']} 報酬率 {$row['returnPct']}%，接近停利目標 {$row['targetReturn']}%。";
+        }
         $rows[] = $row;
     }
+
+    capture_daily_snapshot($totalValue, $totalCost, $totalPl);
 
     return [
         'baseCurrency' => config()['base_currency'],
@@ -196,8 +205,11 @@ function build_summary(): array
             'region'   => aggregate($rows, 'region', $totalValue),
         ],
         'rebalance'    => build_rebalance($rows, $totalValue),
+        'history'      => load_snapshot_history(90),
         'alerts'       => $alerts,
         'warnings'     => $warnings,
+        'stopHitCount' => $stopHitCount,
+        'stopNearCount'=> $stopNearCount,
         'asOf'         => date('Y-m-d H:i:s'),
     ];
 }
@@ -251,8 +263,11 @@ function make_row(array $h, float $nativeValue, ?float $invested, float $rate,
     $unit = $isCash ? null : ((float) $h['quantity'] != 0 ? round($nativeValue / (float) $h['quantity'], 4) : 0);
 
     $value = $nativeValue * $rate;
+    $nativeCost = $invested !== null ? $invested : null;
     $cost  = $invested !== null ? $invested * $rate : null;
+    $nativeDiv = $h['cum_dividend'] !== null ? (float) $h['cum_dividend'] : 0.0;
     $div   = $h['cum_dividend'] !== null ? (float) $h['cum_dividend'] * $rate : 0.0; // 已領配息計入報酬
+    $nativePl = $nativeCost !== null ? $nativeValue - $nativeCost + $nativeDiv : null;
     $pl    = $cost !== null ? $value - $cost + $div : null;
     $ret   = ($cost !== null && $cost > 0) ? round($pl / $cost * 100, 2) : null;
 
@@ -272,8 +287,11 @@ function make_row(array $h, float $nativeValue, ?float $invested, float $rate,
         'equityPct'  => $h['equity_pct'] !== null ? (float) $h['equity_pct'] : null,
         'units'      => $isCash ? null : (float) $h['quantity'],
         'unitPrice'  => $unit,
+        'fxRate'     => round($rate, 6),
         'value'      => round($value, 2),
+        'nativeCost' => $nativeCost !== null ? round($nativeCost, 4) : null,
         'cost'       => $cost !== null ? round($cost, 2) : null,
+        'nativePl'   => $nativePl !== null ? round($nativePl, 4) : null,
         'pl'         => $pl !== null ? round($pl, 2) : null,
         'returnPct'  => $ret,
         'targetReturn' => $target,
@@ -363,6 +381,69 @@ function index_pct(array $agg): array
 function num_or_null($v): ?float
 {
     return ($v === '' || $v === null) ? null : (float) $v;
+}
+
+function snapshot_table_ready(): bool
+{
+    static $ready = null;
+    if ($ready !== null) {
+        return $ready;
+    }
+
+    try {
+        $stmt = db()->query("SHOW TABLES LIKE 'portfolio_snapshots'");
+        $ready = $stmt->fetchColumn() !== false;
+    } catch (Throwable $e) {
+        $ready = false;
+    }
+    return $ready;
+}
+
+function capture_daily_snapshot(float $totalValue, float $totalCost, float $totalPl): void
+{
+    if (!snapshot_table_ready()) {
+        return;
+    }
+
+    db()->prepare(
+        'INSERT INTO portfolio_snapshots (snapshot_date, total_value_twd, total_cost_twd, total_pl_twd, created_at, updated_at)
+         VALUES (CURDATE(), ?, ?, ?, NOW(), NOW())
+         ON DUPLICATE KEY UPDATE
+            total_value_twd = VALUES(total_value_twd),
+            total_cost_twd = VALUES(total_cost_twd),
+            total_pl_twd = VALUES(total_pl_twd),
+            updated_at = NOW()'
+    )->execute([round($totalValue, 2), round($totalCost, 2), round($totalPl, 2)]);
+}
+
+function load_snapshot_history(int $days = 90): array
+{
+    if (!snapshot_table_ready()) {
+        return [];
+    }
+
+    $days = max(1, $days);
+    $stmt = db()->query(
+        'SELECT snapshot_date, total_value_twd, total_cost_twd, total_pl_twd
+         FROM portfolio_snapshots
+         WHERE snapshot_date >= DATE_SUB(CURDATE(), INTERVAL ' . (int) $days . ' DAY)
+         ORDER BY snapshot_date ASC'
+    );
+
+    $today = new DateTimeImmutable('today');
+    $history = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $date = new DateTimeImmutable($row['snapshot_date']);
+        $history[] = [
+            'snapshotDate' => $row['snapshot_date'],
+            'label' => $date->format('m/d'),
+            'daysAgo' => (int) $today->diff($date)->format('%r%a') * -1,
+            'total' => round((float) $row['total_value_twd'], 2),
+            'cost' => round((float) $row['total_cost_twd'], 2),
+            'pl' => round((float) $row['total_pl_twd'], 2),
+        ];
+    }
+    return $history;
 }
 
 // ---------- transactions ----------

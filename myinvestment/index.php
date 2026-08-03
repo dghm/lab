@@ -30,6 +30,35 @@
     <div class="card"><div class="label">USD / TWD</div><div id="fxRate" class="value sm">—</div></div>
 </section>
 
+<section class="trend-section" aria-labelledby="trendTitle">
+    <div class="section-head trend-head">
+        <div>
+            <h2 id="trendTitle">資產趨勢</h2>
+            <p class="muted">每日自動保留一筆總資產快照，觀察近 90 天變化</p>
+        </div>
+    </div>
+    <div class="trend-card">
+        <div class="trend-metrics">
+            <article class="trend-metric">
+                <span>7 天變化</span>
+                <strong id="trendChange7d">—</strong>
+            </article>
+            <article class="trend-metric">
+                <span>30 天變化</span>
+                <strong id="trendChange30d">—</strong>
+            </article>
+            <article class="trend-metric">
+                <span>快照筆數</span>
+                <strong id="trendPointCount">—</strong>
+            </article>
+        </div>
+        <div class="trend-chart-wrap">
+            <canvas id="trendChart"></canvas>
+        </div>
+        <p id="trendHint" class="trend-hint muted">載入中…</p>
+    </div>
+</section>
+
 <div id="alerts" class="alerts"></div>
 <div id="warnings" class="warnings"></div>
 
@@ -134,14 +163,12 @@
     <table id="holdingsTable" class="data-table">
         <thead><tr>
             <th></th><th>名稱</th><th>類別</th><th>屬性</th><th class="num">持有</th><th class="num">現價</th>
-            <th class="num">累計投入</th><th class="num">市值(TWD)</th><th class="num">損益</th>
+            <th class="num" id="costHeader">累計投入</th><th class="num" id="valueHeader">市值(TWD)</th><th class="num" id="plHeader">損益</th>
             <th class="num">報酬率</th><th>停利</th><th></th>
         </tr></thead>
         <tbody></tbody>
     </table>
 </section>
-    </div>
-</div>
 
 <!-- 新增/編輯資產 -->
 <dialog id="holdingDialog">

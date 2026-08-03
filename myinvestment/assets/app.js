@@ -12,6 +12,10 @@ const ICONS = {
     del: '<svg class="ico" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
 };
 const fmt = n => (n ?? 0).toLocaleString('zh-TW', { maximumFractionDigits: 0 });
+const fmtMoney = (n, digits = 2) => (n ?? 0).toLocaleString('en-US', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+});
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, ch => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;',
 }[ch]));
@@ -19,6 +23,12 @@ const charts = {};
 let HOLDINGS = [];
 let ROWS = [];
 let currentTab = 'all';
+
+function signedCurrency(value) {
+    if (value == null) return '—';
+    const rounded = Math.round(value);
+    return `${rounded > 0 ? '+' : rounded < 0 ? '-' : ''}NT$ ${fmt(Math.abs(rounded))}`;
+}
 
 async function api(action, body) {
     const res = await fetch(`${API}?action=${action}`, {
@@ -35,6 +45,19 @@ const plClass = v => v > 0 ? 'sell' : v < 0 ? 'buy' : '';   // 賺=綠 賠=紅
 const sign = v => (v > 0 ? '+' : '') + fmt(v);
 const assetLabel = r => r.assetClass === 'balanced' && r.equityPct != null
     ? `平衡 ${r.equityPct}/${100 - r.equityPct}` : (ASSET_LABEL[r.assetClass] || '—');
+const isUsdFundView = rows => currentTab === 'fund' && rows.length > 0 && rows.every(r => r.category === 'fund' && r.currency === 'USD');
+
+function setHoldingHeaders(useUsdFund) {
+    document.getElementById('costHeader').textContent = useUsdFund ? '累計投入(USD)' : '累計投入';
+    document.getElementById('valueHeader').textContent = useUsdFund ? '市值(USD)' : '市值(TWD)';
+    document.getElementById('plHeader').textContent = useUsdFund ? '損益(USD)' : '損益';
+}
+
+function dualMoneyPrimary(primary, primaryCurrency, secondary, secondaryCurrency, primaryDigits = 2, secondaryDigits = 0) {
+    if (primary == null) return '—';
+    const secondaryText = secondary == null ? '' : `<br><span class="muted money-sub">${secondaryCurrency === 'TWD' ? 'NT$ ' + fmt(secondary) : `${fmtMoney(secondary, 2)} ${secondaryCurrency}`}</span>`;
+    return `${primaryCurrency === 'TWD' ? 'NT$ ' + fmt(primary) : `${fmtMoney(primary, primaryDigits)} ${primaryCurrency}`}${secondaryText}`;
+}
 
 // ---------- 載入 ----------
 async function refresh() {
@@ -153,17 +176,19 @@ function renderSummary(s) {
 
     // 將「達標」優先於「接近」顯示在大卡片內的小徽章；其餘細節仍留在 #alerts/#warnings。
     const badgeEl = document.getElementById('cardAlertBadge');
-    const hasAlert = (s.alerts || []).length > 0;
-    const hasWarning = (s.warnings || []).length > 0;
-    if (hasAlert) {
-        badgeEl.textContent = `${s.alerts.length} 項已達停利目標`;
+    const hitCount = +(s.stopHitCount || 0);
+    const nearCount = +(s.stopNearCount || 0);
+    if (hitCount > 0) {
+        badgeEl.textContent = `${hitCount} 項已達停利目標`;
         badgeEl.className = 'card-alert-badge hit';
-    } else if (hasWarning) {
-        badgeEl.textContent = `🟡 ${s.warnings.length} 項接近停利目標`;
+    } else if (nearCount > 0) {
+        badgeEl.textContent = `🟡 ${nearCount} 項接近停利目標`;
         badgeEl.className = 'card-alert-badge near';
     } else {
         badgeEl.className = 'card-alert-badge hidden';
     }
+
+    renderTrend(s.history || []);
 
     pie('chartAsset', s.allocation.asset, 'asset', 'legendAsset');
     pie('chartCategory', s.allocation.category, 'category', 'legendCategory');
@@ -173,6 +198,77 @@ function renderSummary(s) {
     ROWS = s.rows;
     renderHoldings(ROWS);
     renderRebalance(s.rebalance);
+}
+
+function renderTrend(history) {
+    const points = Array.isArray(history) ? history : [];
+    const countEl = document.getElementById('trendPointCount');
+    const hintEl = document.getElementById('trendHint');
+    document.getElementById('trendChange7d').textContent = '—';
+    document.getElementById('trendChange30d').textContent = '—';
+    countEl.textContent = `${points.length} 筆`;
+
+    if (charts.trend) {
+        charts.trend.destroy();
+        delete charts.trend;
+    }
+
+    if (points.length < 2) {
+        hintEl.textContent = points.length === 1
+            ? '目前只有 1 筆快照；明天起會自動累積趨勢。'
+            : '尚未累積快照資料；summary 載入後會每天自動補一筆。';
+        return;
+    }
+
+    const latest = points[points.length - 1];
+    const changeFromDaysAgo = (days) => {
+        const target = [...points].reverse().find(point => point.daysAgo >= days) || points[0];
+        return latest.total - target.total;
+    };
+    const change7d = changeFromDaysAgo(7);
+    const change30d = changeFromDaysAgo(30);
+    document.getElementById('trendChange7d').textContent = signedCurrency(change7d);
+    document.getElementById('trendChange30d').textContent = signedCurrency(change30d);
+    document.getElementById('trendChange7d').className = plClass(change7d);
+    document.getElementById('trendChange30d').className = plClass(change30d);
+    hintEl.textContent = `最新快照 ${latest.snapshotDate}，總市值 NT$ ${fmt(latest.total)}。`;
+
+    const ctx = document.getElementById('trendChart');
+    charts.trend = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: points.map(point => point.label),
+            datasets: [{
+                label: '總市值',
+                data: points.map(point => point.total),
+                borderColor: '#0f6c5a',
+                backgroundColor: 'rgba(15,108,90,.12)',
+                fill: true,
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.25,
+            }],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: context => `NT$ ${fmt(context.parsed.y)}`,
+                    },
+                },
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: {
+                    ticks: { callback: value => `NT$ ${fmt(value)}` },
+                    grid: { color: '#eef0f4' },
+                },
+            },
+        },
+    });
 }
 
 const PIE_COLORS = ['#89b7ee', '#f2b33f', '#89cda0', '#f89f9f', '#b8a4e3', '#7fd0d0', '#e3c98a', '#c5c9d6'];
@@ -210,6 +306,8 @@ function stopBadge(r) {
 function renderHoldings(rows) {
     // Tab 篩選
     const filtered = currentTab === 'all' ? rows : rows.filter(r => r.category === currentTab);
+    const useUsdFund = isUsdFundView(filtered);
+    setHoldingHeaders(useUsdFund);
 
     // Tab 小計
     const tabVal  = filtered.reduce((s, r) => s + (r.value || 0), 0);
@@ -217,13 +315,29 @@ function renderHoldings(rows) {
     const tabPl   = filtered.reduce((s, r) => s + (r.pl || 0), 0);
     const tabRet  = tabCost > 0 ? (tabPl / tabCost * 100).toFixed(2) : null;
     const summEl  = document.getElementById('tabSummary');
-    summEl.innerHTML = `市值 NT$${fmt(tabVal)}｜投入 NT$${fmt(tabCost)}｜損益 <span class="${plClass(tabPl)}">${sign(tabPl)}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span>`;
+    if (useUsdFund) {
+        const nativeVal = filtered.reduce((s, r) => s + (r.nativeValue || 0), 0);
+        const nativeCost = filtered.reduce((s, r) => s + (r.nativeCost || 0), 0);
+        const nativePl = filtered.reduce((s, r) => s + (r.nativePl || 0), 0);
+        const nativeSign = `${nativePl > 0 ? '+' : nativePl < 0 ? '-' : ''}${fmtMoney(Math.abs(nativePl), 2)} USD`;
+        summEl.innerHTML = `市值 ${fmtMoney(nativeVal, 2)} USD｜投入 ${fmtMoney(nativeCost, 2)} USD｜損益 <span class="${plClass(nativePl)}">${nativeSign}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span><span class="muted money-sub-inline">　約 NT$${fmt(tabVal)}</span>`;
+    } else {
+        summEl.innerHTML = `市值 NT$${fmt(tabVal)}｜投入 NT$${fmt(tabCost)}｜損益 <span class="${plClass(tabPl)}">${sign(tabPl)}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span>`;
+    }
 
     const tb = document.querySelector('#holdingsTable tbody');
     tb.innerHTML = filtered.map(r => {
-        const valueCell = r.category === 'fund' && r.currency === 'USD'
-            ? `${fmt(r.value)}<br><span class="muted" style="font-size:11px">$${r.nativeValue?.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USD</span>`
-            : fmt(r.value);
+        const valueCell = useUsdFund
+            ? dualMoneyPrimary(r.nativeValue, 'USD', r.value, 'TWD')
+            : (r.category === 'fund' && r.currency === 'USD'
+                ? `${fmt(r.value)}<br><span class="muted money-sub">${fmtMoney(r.nativeValue, 2)} USD</span>`
+                : fmt(r.value));
+        const costCell = useUsdFund
+            ? dualMoneyPrimary(r.nativeCost, 'USD', r.cost, 'TWD')
+            : (r.cost != null ? fmt(r.cost) : '—');
+        const plCell = useUsdFund
+            ? dualMoneyPrimary(r.nativePl, 'USD', r.pl, 'TWD')
+            : (r.pl != null ? sign(r.pl) : '—');
         return `
         <tr>
             <td class="drag-handle" aria-hidden="true">⠿</td>
@@ -231,10 +345,10 @@ function renderHoldings(rows) {
             <td>${CAT_LABEL[r.category] || r.category}</td>
             <td>${assetLabel(r)}</td>
             <td class="num">${r.units != null ? r.units.toLocaleString() : '—'}</td>
-            <td class="num">${r.unitPrice != null ? r.unitPrice.toLocaleString() : '—'}</td>
-            <td class="num">${r.cost != null ? fmt(r.cost) : '—'}</td>
+            <td class="num">${r.unitPrice != null ? `${fmtMoney(r.unitPrice, 3)}${useUsdFund ? ' USD' : ''}` : '—'}</td>
+            <td class="num">${costCell}</td>
             <td class="num strong">${valueCell}</td>
-            <td class="num ${plClass(r.pl)}">${r.pl != null ? sign(r.pl) : '—'}</td>
+            <td class="num ${plClass(useUsdFund ? r.nativePl : r.pl)}">${plCell}</td>
             <td class="num ${plClass(r.pl)}">${r.returnPct != null ? r.returnPct + '%' : '—'}</td>
             <td>${stopBadge(r)}</td>
             <td class="ops">
