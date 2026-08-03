@@ -320,7 +320,7 @@ function renderHoldings(rows) {
         const nativeCost = filtered.reduce((s, r) => s + (r.nativeCost || 0), 0);
         const nativePl = filtered.reduce((s, r) => s + (r.nativePl || 0), 0);
         const nativeSign = `${nativePl > 0 ? '+' : nativePl < 0 ? '-' : ''}${fmtMoney(Math.abs(nativePl), 2)} USD`;
-        summEl.innerHTML = `市值 ${fmtMoney(nativeVal, 2)} USD｜投入 ${fmtMoney(nativeCost, 2)} USD｜損益 <span class="${plClass(nativePl)}">${nativeSign}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span><span class="muted money-sub-inline">　約 NT$${fmt(tabVal)}</span>`;
+        summEl.innerHTML = `市值 ${fmtMoney(nativeVal, 2)} USD｜投入 ${fmtMoney(nativeCost, 2)} USD｜損益 <span class="${plClass(nativePl)}">${nativeSign}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span>`;
     } else {
         summEl.innerHTML = `市值 NT$${fmt(tabVal)}｜投入 NT$${fmt(tabCost)}｜損益 <span class="${plClass(tabPl)}">${sign(tabPl)}${tabRet != null ? ' (' + (tabRet > 0 ? '+' : '') + tabRet + '%)' : ''}</span>`;
     }
@@ -328,15 +328,15 @@ function renderHoldings(rows) {
     const tb = document.querySelector('#holdingsTable tbody');
     tb.innerHTML = filtered.map(r => {
         const valueCell = useUsdFund
-            ? dualMoneyPrimary(r.nativeValue, 'USD', r.value, 'TWD')
+            ? `${fmtMoney(r.nativeValue, 2)} USD`
             : (r.category === 'fund' && r.currency === 'USD'
                 ? `${fmt(r.value)}<br><span class="muted money-sub">${fmtMoney(r.nativeValue, 2)} USD</span>`
                 : fmt(r.value));
         const costCell = useUsdFund
-            ? dualMoneyPrimary(r.nativeCost, 'USD', r.cost, 'TWD')
+            ? (r.nativeCost != null ? `${fmtMoney(r.nativeCost, 2)} USD` : '—')
             : (r.cost != null ? fmt(r.cost) : '—');
         const plCell = useUsdFund
-            ? dualMoneyPrimary(r.nativePl, 'USD', r.pl, 'TWD')
+            ? (r.nativePl != null ? `${r.nativePl > 0 ? '+' : r.nativePl < 0 ? '-' : ''}${fmtMoney(Math.abs(r.nativePl), 2)} USD` : '—')
             : (r.pl != null ? sign(r.pl) : '—');
         return `
         <tr>
